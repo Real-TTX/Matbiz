@@ -1,0 +1,51 @@
+@model List<Matbiz.Web.Modules.Customers.Models.CustomerHistoryEntry>
+
+<div class="col-md-6">
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i>Letzte Historieneinträge</h5>
+            <span class="text-muted small">@Model.Count Eintrag/Einträge</span>
+        </div>
+        @if (Model.Count == 0)
+        {
+            <p class="text-muted m-3">Noch keine Einträge.</p>
+        }
+        else
+        {
+            <ul class="dash-list">
+                @foreach (var h in Model)
+                {
+                    <li class="dash-row">
+                        <a class="dash-row-body" href="/Customers/@h.CustomerId?tab=historie">
+                            <div class="d-flex align-items-center gap-2">
+                                @{ var (icon, css) = ActionStyle(h.Action); }
+                                <span class="history-action @css"><i class="bi @icon"></i> @h.Action</span>
+                                <strong class="text-truncate">@h.Customer?.Name</strong>
+                            </div>
+                            <div class="small text-muted mt-1 text-truncate">
+                                @h.At.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                                @if (!string.IsNullOrEmpty(h.Details))
+                                {
+                                    <span class="ms-2">— @h.Details</span>
+                                }
+                            </div>
+                        </a>
+                    </li>
+                }
+                <li class="dash-row dash-row-more">
+                    <a class="dash-show-all" href="/Customers">Alle anzeigen <i class="bi bi-arrow-right"></i></a>
+                </li>
+            </ul>
+        }
+    </div>
+</div>
+
+@functions {
+    static (string icon, string css) ActionStyle(string action) => action switch
+    {
+        "Created" => ("bi-plus-circle", "act-created"),
+        "Updated" => ("bi-pencil", "act-updated"),
+        "Note"    => ("bi-chat-dots", "act-note"),
+        _         => ("bi-arrow-right-circle", "act-default")
+    };
+}

@@ -1,0 +1,33 @@
+@model ColumnConfigVm
+@*
+    Reusable column-visibility dropdown. Posts to the current page's
+    "SaveColumns" handler — each PageModel implements it via the helper
+    below (calls ListPreferences.Save).
+*@
+
+<details class="column-config-wrap">
+    <summary class="btn btn-outline-secondary">
+        <i class="bi bi-layout-three-columns"></i> Spalten
+    </summary>
+    <div class="column-config-panel">
+        <form method="post" asp-page-handler="SaveColumns">
+            <input type="hidden" name="ListKey" value="@Model.Config.ListKey" />
+            @foreach (var col in Model.Config.All)
+            {
+                var isOn = Model.Config.Is(col.Key);
+                <label class="column-config-item">
+                    <input type="checkbox" name="VisibleKeys" value="@col.Key" @(isOn ? "checked" : "") />
+                    <span>@col.Label</span>
+                </label>
+            }
+            <div class="mt-2 d-flex justify-content-between">
+                <button type="submit" name="Reset" value="true" class="btn btn-link btn-sm">
+                    <i class="bi bi-arrow-counterclockwise"></i> Standard
+                </button>
+                <button type="submit" class="btn btn-primary btn-sm">
+                    <i class="bi bi-check2"></i> Speichern
+                </button>
+            </div>
+        </form>
+    </div>
+</details>

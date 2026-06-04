@@ -1,0 +1,106 @@
+@model Matbiz.Web.Pages.Customers.DetailModel
+@{
+    string SortLink(string column)
+    {
+        var nextSort = Model.HistorySort switch
+        {
+            "at_desc" when column == "at" => "at_asc",
+            "at_asc" when column == "at" => "at_desc",
+            "action_asc" when column == "action" => "action_desc",
+            "action_desc" when column == "action" => "action_asc",
+            _ => column == "at" ? "at_desc" : "action_asc"
+        };
+        return $"/Customers/{Model.Id}?tab=historie&q={Uri.EscapeDataString(Model.HistorySearch ?? "")}&historySort={nextSort}";
+    }
+
+    string SortIcon(string column)
+    {
+        var s = Model.HistorySort;
+        if (column == "at")
+            return s == "at_asc" ? "bi-arrow-up" : s == "at_desc" ? "bi-arrow-down" : "bi-arrow-down-up text-muted";
+        if (column == "action")
+            return s == "action_asc" ? "bi-arrow-up" : s == "action_desc" ? "bi-arrow-down" : "bi-arrow-down-up text-muted";
+        return "bi-arrow-down-up text-muted";
+    }
+}
+
+<div id="history-table">
+    @{ var rows = Model.FilteredHistory.ToList(); }
+
+    @if (rows.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-clock-history"></i>
+            <p class="mt-2 mb-0 text-muted">
+                @(string.IsNullOrEmpty(Model.HistorySearch) ? "Noch keine Einträge." : $"Keine Treffer für „{Model.HistorySearch}\".")
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-hover align-middle history-table">
+                <thead>
+                    <tr>
+                        <th style="width: 160px;">
+                            <a class="th-sort" href="@SortLink("at")">Datum / Zeit <i class="bi @SortIcon("at")"></i></a>
+                        </th>
+                        <th style="width: 140px;">
+                            <a class="th-sort" href="@SortLink("action")">Aktion <i class="bi @SortIcon("action")"></i></a>
+                        </th>
+                        <th>Details</th>
+                        <th style="width: 200px;">Bearbeiter</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in rows)
+                    {
+                        <tr>
+                            <td class="text-nowrap">
+                                <i class="bi bi-calendar3 text-muted me-1"></i>
+                                <strong>@h.At.ToLocalTime().ToString("dd.MM.yyyy")</strong>
+                                <span class="text-muted ms-1">@h.At.ToLocalTime().ToString("HH:mm")</span>
+                            </td>
+                            <td>
+                                @{ var (iconCls, badgeCls) = ActionStyle(h.Action); }
+                                <span class="history-action @badgeCls"><i class="bi @iconCls"></i> @h.Action</span>
+                            </td>
+                            <td>
+                                <div>@h.Details</div>
+                                @if (Model.HistoryAttachments.TryGetValue(h.Id, out var atts) && atts.Count > 0)
+                                {
+                                    <div class="d-flex flex-wrap gap-1 mt-1">
+                                        @foreach (var a in atts)
+                                        {
+                                            <a href="/files/@a.Id" target="_blank" class="history-attachment" title="@(a.SizeBytes / 1024) KB">
+                                                <i class="bi bi-paperclip"></i> @a.FileName
+                                            </a>
+                                        }
+                                    </div>
+                                }
+                                @if (!string.IsNullOrEmpty(h.OnBehalfOfAdminId))
+                                {
+                                    <small class="text-warning"><i class="bi bi-shield-lock"></i> via Remote-Zugriff durch @(Model.ActorName(h.OnBehalfOfAdminId))</small>
+                                }
+                            </td>
+                            <td>
+                                <i class="bi bi-person-circle text-muted me-1"></i>@Model.ActorName(h.ActorUserId)
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="small text-muted">@rows.Count Eintrag/Einträge</div>
+    }
+</div>
+
+@functions {
+    static (string icon, string css) ActionStyle(string action) => action switch
+    {
+        "Created" => ("bi-plus-circle", "act-created"),
+        "Updated" => ("bi-pencil", "act-updated"),
+        "Note" => ("bi-chat-dots", "act-note"),
+        _ => ("bi-arrow-right-circle", "act-default")
+    };
+}

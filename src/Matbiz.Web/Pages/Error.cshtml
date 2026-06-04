@@ -1,0 +1,12 @@
+@page
+@model ErrorModel
+@{ ViewData["Title"] = "Fehler"; }
+
+<h1 class="text-danger"><i class="bi bi-exclamation-triangle me-2"></i>Ein Fehler ist aufgetreten</h1>
+
+@if (Model.ShowRequestId)
+{
+    <p>Request ID: <code>@Model.RequestId</code></p>
+}
+
+<p><a href="/" class="btn btn-secondary"><i class="bi bi-arrow-left"></i> Zurück zum Dashboard</a></p>

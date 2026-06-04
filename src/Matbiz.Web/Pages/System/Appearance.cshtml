@@ -1,0 +1,118 @@
+@page
+@model Matbiz.Web.Pages.System.AppearanceModel
+@using Matbiz.Web.Modules.SystemSettings
+@using Matbiz.Web.Modules.SystemSettings.Models
+@{ ViewData["Title"] = "Aussehen"; }
+
+<h1>System</h1>
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item"><a class="nav-link active" href="/System/Appearance"><i class="bi bi-palette"></i> Aussehen</a></li>
+</ul>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+
+<form method="post" asp-page-handler="Save" class="row g-4" style="max-width: 1000px;">
+    <div class="col-md-6">
+        <h3 class="mb-3"><i class="bi bi-type me-2"></i>Identität</h3>
+        <div class="mb-3">
+            <label class="form-label">Anwendungsname</label>
+            <input class="form-control" asp-for="AppName" />
+        </div>
+
+        <div class="alert alert-info small mt-4">
+            <i class="bi bi-info-circle"></i> <strong>Dunkles oder helles Theme</strong> ist eine persönliche Einstellung —
+            jeder Benutzer wählt sie unter <a href="/Account/Manage">Mein Konto</a>.
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <h3 class="mb-3"><i class="bi bi-droplet me-2"></i>Farben</h3>
+
+        <label class="form-label">Primärfarbe</label>
+        <div class="color-row">
+            <input type="color" asp-for="PrimaryColor" oninput="document.getElementById('p-prev').style.background=this.value;document.getElementById('p-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
+            <input type="text" class="form-control form-control-sm" asp-for="PrimaryColor" />
+            <span id="p-prev" class="color-preview" style="background: @Model.PrimaryColor; color: @ContrastHelper.OnColor(Model.PrimaryColor);">
+                <i class="bi bi-check2"></i> Primär-Button
+            </span>
+        </div>
+
+        <label class="form-label">Akzentfarbe 1</label>
+        <div class="color-row">
+            <input type="color" asp-for="AccentColor1" oninput="document.getElementById('a1-prev').style.background=this.value;document.getElementById('a1-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
+            <input type="text" class="form-control form-control-sm" asp-for="AccentColor1" />
+            <span id="a1-prev" class="color-preview" style="background: @Model.AccentColor1; color: @ContrastHelper.OnColor(Model.AccentColor1);">
+                <i class="bi bi-star"></i> Akzent 1
+            </span>
+        </div>
+
+        <label class="form-label">Akzentfarbe 2</label>
+        <div class="color-row">
+            <input type="color" asp-for="AccentColor2" oninput="document.getElementById('a2-prev').style.background=this.value;document.getElementById('a2-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
+            <input type="text" class="form-control form-control-sm" asp-for="AccentColor2" />
+            <span id="a2-prev" class="color-preview" style="background: @Model.AccentColor2; color: @ContrastHelper.OnColor(Model.AccentColor2);">
+                <i class="bi bi-tag"></i> Akzent 2
+            </span>
+        </div>
+
+        <div class="form-text">
+            Die Schriftfarbe in den Vorschauen wird automatisch <strong>hell oder dunkel</strong> gewählt — je nachdem,
+            wie hell die Hintergrundfarbe ist (W3C-Luminanz).
+        </div>
+    </div>
+
+    <div>
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+    </div>
+</form>
+
+<hr class="my-4" style="max-width: 1000px;" />
+
+<div style="max-width: 1000px;">
+    <h3 class="mb-3"><i class="bi bi-image me-2"></i>Logo</h3>
+    <div class="row g-3 align-items-end">
+        <div class="col-md-4">
+            @if (Model.Current.LogoBytes is { Length: > 0 })
+            {
+                <img src="/branding/logo?v=@Model.Current.Version" alt="Logo"
+                     style="max-height: 80px; background: var(--bg-subtle); padding: 8px; border-radius: 4px;" />
+            }
+            else
+            {
+                <div class="text-muted">Noch kein Logo hochgeladen.</div>
+            }
+        </div>
+        <div class="col-md-8">
+            <form method="post" asp-page-handler="UploadLogo" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
+                <div class="flex-grow-1">
+                    <input asp-for="Logo" type="file" class="form-control" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+                    <div class="form-text">PNG, JPEG, SVG oder WebP — max. 2 MB.</div>
+                </div>
+                <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Hochladen</button>
+                @if (Model.Current.LogoBytes is { Length: > 0 })
+                {
+                    <button type="submit" formaction="?handler=ClearLogo" class="btn btn-outline-danger"
+                            onclick="return confirm('Logo entfernen?');">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                }
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Auto-contrast helper used by the inline color pickers above.
+    function onColor(hex) {
+        if (!hex || hex[0] !== '#' || hex.length < 7) return '#fff';
+        const r = parseInt(hex.substr(1, 2), 16);
+        const g = parseInt(hex.substr(3, 2), 16);
+        const b = parseInt(hex.substr(5, 2), 16);
+        const lin = (c) => { c /= 255; return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4); };
+        const lum = 0.2126 * lin(r) + 0.7152 * lin(g) + 0.0722 * lin(b);
+        return lum > 0.55 ? '#1f2328' : '#ffffff';
+    }
+</script>

@@ -1,0 +1,10 @@
+**/bin
+**/obj
+**/.vs
+**/.vscode
+**/.idea
+.git
+.gitignore
+.env
+*.md
+src/Matbiz.Web/Data/app.db

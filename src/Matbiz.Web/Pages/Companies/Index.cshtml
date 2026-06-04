@@ -1,0 +1,66 @@
+@page
+@model Matbiz.Web.Pages.Companies.IndexModel
+@{ ViewData["Title"] = "Firmen"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Firmen</h1>
+    <partial name="_ColumnConfigDropdown" model="@(new ColumnConfigVm(Model.Columns))" />
+    <a class="btn btn-primary ms-2" href="/Companies/Create"><i class="bi bi-plus-lg"></i> Neue Firma</a>
+</div>
+
+<form class="d-flex flex-wrap gap-2 mb-3 align-items-center"
+      hx-get="/Companies"
+      hx-trigger="input changed delay:200ms from:input[name=Search], change from:input[name=tag]"
+      hx-target="#company-table"
+      hx-swap="outerHTML"
+      hx-push-url="true">
+    <div class="position-relative" style="max-width: 320px; flex: 0 0 320px;">
+        <i class="bi bi-search position-absolute" style="left: 0.75rem; top: 0.6rem; color: var(--text-muted);"></i>
+        <input class="form-control ps-5" placeholder="Suche…" name="Search" value="@Model.Search" autocomplete="off" />
+    </div>
+
+    @if (Model.AllTags.Count > 0)
+    {
+        <details class="tag-filter-dropdown">
+            <summary class="btn btn-outline-secondary">
+                <i class="bi bi-funnel"></i> Tags
+                @if (Model.FilterTagIds.Count > 0) { <span class="badge bg-primary ms-1">@Model.FilterTagIds.Count</span> }
+            </summary>
+            <div class="tag-filter-panel">
+                <input class="form-control form-control-sm mb-2" placeholder="Tag suchen…"
+                       oninput="window.matbizFilterTags(this.value)" autocomplete="off" />
+                <div class="tag-filter-list">
+                    @foreach (var t in Model.AllTags)
+                    {
+                        var checkedAttr = Model.FilterTagIds.Contains(t.Id) ? "checked" : "";
+                        <label class="tag-filter-item" data-tagname="@t.Name.ToLower()">
+                            <input type="checkbox" name="tag" value="@t.Id" @checkedAttr />
+                            <span class="tag-chip" style="background: @TagBg(t.Color); color: @t.Color;">
+                                <i class="bi bi-tag-fill"></i>@t.Name
+                            </span>
+                        </label>
+                    }
+                </div>
+                @if (Model.FilterTagIds.Count > 0)
+                {
+                    <a class="btn btn-sm btn-link mt-2" href="/Companies"><i class="bi bi-x-circle"></i> Auswahl zurücksetzen</a>
+                }
+            </div>
+        </details>
+    }
+</form>
+
+@await Html.PartialAsync("_CompanyTable", Model)
+
+<script>
+    window.matbizFilterTags = function (q) {
+        q = (q || '').toLowerCase();
+        document.querySelectorAll('.tag-filter-item').forEach(function (el) {
+            el.style.display = (el.dataset.tagname || '').includes(q) ? '' : 'none';
+        });
+    };
+</script>
+
+@functions {
+    static string TagBg(string color) => color.Length >= 7 ? color[..7] + "1a" : "#eaecef";
+}

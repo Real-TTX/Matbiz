@@ -1,0 +1,114 @@
+@page
+@model Matbiz.Web.Pages.Users.IndexModel
+@{ ViewData["Title"] = "Benutzer"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Benutzerverwaltung</h1>
+    <button type="button" class="btn btn-primary"
+            onclick="document.getElementById('create-form').classList.toggle('d-none')">
+        <i class="bi bi-person-plus"></i> Neuer Benutzer
+    </button>
+</div>
+
+<form id="create-form" method="post" asp-page-handler="Create" class="border rounded p-3 mb-4 bg-light @(Model.ShowCreate ? "" : "d-none")">
+    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">E-Mail</label>
+            <input class="form-control" asp-for="NewUser.Email" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Anzeigename</label>
+            <input class="form-control" asp-for="NewUser.DisplayName" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Passwort</label>
+            <input type="password" class="form-control" asp-for="NewUser.Password" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">Rolle</label>
+            <select class="form-select" asp-for="NewUser.Role">
+                <option value="User">User</option>
+                <option value="Admin">Admin</option>
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check2"></i> Anlegen</button>
+</form>
+
+@if (Model.Items.Count == 0)
+{
+    <p class="text-muted">Noch keine Benutzer.</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>E-Mail</th>
+                <th>Rolle</th>
+                <th>Status</th>
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var u in Model.Items)
+            {
+                var isSelf = u.Id == Model.CurrentUserId;
+                var role = Model.PrimaryRole(u.Id);
+                <tr class="@(u.IsActive ? "" : "text-muted")">
+                    <td>
+                        <strong>@(u.DisplayName ?? u.Email)</strong>
+                        @if (isSelf)
+                        {
+                            <span class="badge bg-info-subtle text-info ms-2">Du</span>
+                        }
+                    </td>
+                    <td><i class="bi bi-envelope text-muted me-1"></i>@u.Email</td>
+                    <td>
+                        @if (role == "Admin")
+                        {
+                            <span class="badge bg-warning-subtle text-warning"><i class="bi bi-shield-fill"></i> Admin</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-person"></i> User</span>
+                        }
+                    </td>
+                    <td>
+                        @if (u.IsActive)
+                        {
+                            <span class="badge bg-success-subtle text-success"><i class="bi bi-check-circle"></i> Aktiv</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-pause-circle"></i> Inaktiv</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        @if (!isSelf && u.IsActive)
+                        {
+                            <form method="post" action="/impersonation/start" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="targetUserId" value="@u.Id" />
+                                <input type="hidden" name="returnUrl" value="/" />
+                                <button class="btn btn-sm btn-warning" title="Als diesen Benutzer arbeiten">
+                                    <i class="bi bi-shield-lock"></i> Remote-Zugriff
+                                </button>
+                            </form>
+                        }
+                        @if (!isSelf)
+                        {
+                            <form method="post" asp-page-handler="ToggleActive" asp-route-userId="@u.Id" class="d-inline">
+                                <button class="btn btn-sm btn-outline-secondary">
+                                    @(u.IsActive ? "Deaktivieren" : "Aktivieren")
+                                </button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,41 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: matbiz-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-matbiz}
+      POSTGRES_USER: ${POSTGRES_USER:-matbiz}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-matbiz}
+    volumes:
+      - matbiz-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matbiz} -d ${POSTGRES_DB:-matbiz}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: matbiz-web
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-matbiz};Username=${POSTGRES_USER:-matbiz};Password=${POSTGRES_PASSWORD:-matbiz}"
+      Matbiz__SeedAdmin__Email: ${MATBIZ_ADMIN_EMAIL:-admin@matbiz.local}
+      Matbiz__SeedAdmin__Password: ${MATBIZ_ADMIN_PASSWORD:-ChangeMe!2026}
+      Matbiz__SeedSampleData: ${MATBIZ_SEED_SAMPLE_DATA:-false}
+      # ASPNETCORE_URLS is fixed to :8080 inside the container; we map it out.
+    ports:
+      - "${MATBIZ_PORT:-8040}:8080"
+    volumes:
+      - matbiz-dpkeys:/root/.aspnet/DataProtection-Keys
+
+volumes:
+  matbiz-pgdata:
+  matbiz-dpkeys:

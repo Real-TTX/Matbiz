@@ -1,0 +1,108 @@
+@page "/Customers/{Id:guid}"
+@model Matbiz.Web.Pages.Customers.DetailModel
+@{
+    ViewData["Title"] = Model.Customer?.Name ?? "Kunde";
+    var c = Model.Customer!;
+}
+
+<a class="btn btn-link mb-2 ps-0" href="/Customers"><i class="bi bi-arrow-left"></i> Übersicht</a>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+
+<div class="customer-header">
+    <div class="d-flex align-items-start">
+        <div class="customer-avatar">@Matbiz.Web.Pages.Customers.DetailModel.Initials(c.Name)</div>
+        <div class="ms-3 flex-grow-1">
+            <div class="text-muted small">
+                @if (c.Company is not null)
+                {
+                    <a class="text-decoration-none text-reset" href="/Companies/@c.Company.Id"><i class="bi bi-building"></i> @c.Company.Name</a>
+                }
+                else if (!string.IsNullOrEmpty(c.CompanyName))
+                {
+                    <span>@c.CompanyName</span>
+                }
+            </div>
+            <h1 class="mb-1">@c.Name</h1>
+            <div class="customer-meta">
+                @if (!string.IsNullOrEmpty(c.Email)) { <span><i class="bi bi-envelope"></i> <a href="mailto:@c.Email">@c.Email</a></span> }
+                @if (!string.IsNullOrEmpty(c.Phone)) { <span><i class="bi bi-telephone"></i> <a href="tel:@c.Phone">@c.Phone</a></span> }
+                @{
+                    var loc = c.LocationLine;
+                    var country = string.IsNullOrEmpty(c.Country) ? "" : ", " + c.Country;
+                }
+                @if (!string.IsNullOrEmpty(loc)) { <span><i class="bi bi-geo-alt"></i> @loc@country</span> }
+                <span class="text-muted"><i class="bi bi-calendar3"></i> Angelegt @c.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+            </div>
+            <div class="tag-editor-inline mt-2">
+                @foreach (var ct in c.Tags)
+                {
+                    <form method="post" asp-page-handler="RemoveTag" asp-route-tagId="@ct.TagId" class="d-inline">
+                        <button type="submit" class="tag-chip-remove"
+                                style="background: @TagBg(ct.Tag.Color); color: @ct.Tag.Color;"
+                                title="@(ct.Tag.Name) entfernen">
+                            <i class="bi bi-tag-fill"></i>@ct.Tag.Name
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </form>
+                }
+
+                <details class="tag-add-wrap">
+                    <summary class="tag-add-chip">
+                        <i class="bi bi-plus-lg"></i> Tag
+                    </summary>
+                    <form method="post" asp-page-handler="AddTag" class="tag-add-form ms-2">
+                        <input name="NewTag" list="all-tags-options" placeholder="Tag-Name…"
+                               autocomplete="off" autofocus />
+                        <button type="submit" class="btn btn-sm btn-primary py-0 px-2"
+                                style="font-size: 0.78rem;"><i class="bi bi-check2"></i></button>
+                        <datalist id="all-tags-options">
+                            @foreach (var t in Model.AllTags.Where(t => !c.Tags.Any(ct => ct.TagId == t.Id)))
+                            {
+                                <option value="@t.Name" />
+                            }
+                        </datalist>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mt-4" id="customer-tabs">
+    @foreach (var (key, icon, label, count) in new (string, string, string, int?)[]
+    {
+        ("stammdaten", "bi-card-list", "Stammdaten", null),
+        ("felder", "bi-sliders", "Eigene Felder", Model.Definitions.Count > 0 ? Model.Definitions.Count : null),
+        ("historie", "bi-clock-history", "Historie", c.History.Count > 0 ? c.History.Count : null),
+        ("aufgaben", "bi-check2-square", "Aufgaben", Model.Tasks.Count > 0 ? Model.Tasks.Count : null),
+        ("dateien", "bi-paperclip", "Dateien", Model.LibraryFiles.Count > 0 ? Model.LibraryFiles.Count : null)
+    })
+    {
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == key ? "active" : "")"
+               href="/Customers/@Model.Id?tab=@key">
+                <i class="bi @icon"></i> @label
+                @if (count is int n) { <span class="badge bg-secondary ms-1">@n</span> }
+            </a>
+        </li>
+    }
+</ul>
+
+<div id="tab-content" class="tab-panel">
+    @switch (Model.ActiveTab)
+    {
+        case "felder": @await Html.PartialAsync("_TabFelder", Model); break;
+        case "historie": @await Html.PartialAsync("_TabHistorie", Model); break;
+        case "aufgaben": @await Html.PartialAsync("_TabAufgaben", Model); break;
+        case "dateien": @await Html.PartialAsync("_TabDateien", Model); break;
+        default: @await Html.PartialAsync("_TabStammdaten", Model); break;
+    }
+</div>
+
+@functions {
+    static string TagBg(string color) => color.Length >= 7 ? color[..7] + "1a" : "#eaecef";
+}

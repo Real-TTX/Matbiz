@@ -1,0 +1,57 @@
+@page
+@model Matbiz.Web.Pages.Departments.IndexModel
+@{ ViewData["Title"] = "Abteilungen"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Abteilungen</h1>
+    <button type="button" class="btn btn-primary"
+            onclick="document.getElementById('create-form').classList.toggle('d-none')">
+        <i class="bi bi-plus-lg"></i> Neue Abteilung
+    </button>
+</div>
+
+<form id="create-form" method="post" asp-page-handler="Create"
+      class="border rounded p-3 mb-4 bg-light @(Model.ShowCreate ? "" : "d-none")">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Name *</label>
+            <input class="form-control" asp-for="Draft.Name" required />
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Beschreibung</label>
+            <input class="form-control" asp-for="Draft.Description" />
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check2"></i> Anlegen</button>
+</form>
+
+@if (Model.Items.Count == 0)
+{
+    <p class="text-muted">Noch keine Abteilungen.</p>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Beschreibung</th>
+                <th>Teams</th>
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var d in Model.Items)
+            {
+                <tr>
+                    <td><a class="text-decoration-none text-reset" href="/Departments/Detail/@d.Id"><strong>@d.Name</strong></a></td>
+                    <td class="text-muted">@d.Description</td>
+                    <td><i class="bi bi-people-fill text-muted me-1"></i>@d.Teams.Count</td>
+                    <td class="text-end">
+                        <a class="btn btn-outline-secondary btn-sm" title="Öffnen" href="/Departments/Detail/@d.Id"><i class="bi bi-folder2-open"></i></a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,35 @@
+@model Matbiz.Web.Pages.Companies.PickerModel
+
+@if (Model.Items.Count == 0)
+{
+    <div class="text-muted text-center py-4">
+        <i class="bi bi-search"></i>
+        @(string.IsNullOrEmpty(Model.Query) ? " Tippe zum Suchen…" : $" Keine Treffer für „{Model.Query}\".")
+    </div>
+}
+else
+{
+    <ul class="picker-list">
+        @foreach (var co in Model.Items.Take(50))
+        {
+            <li>
+                <button type="button" class="picker-row"
+                        data-id="@co.Id" data-label="@co.Name"
+                        onclick="entityPicker.select(this)">
+                    <div class="picker-avatar"><i class="bi bi-building"></i></div>
+                    <div class="picker-body">
+                        <div class="picker-name">@co.Name</div>
+                        <div class="picker-sub small">
+                            @if (!string.IsNullOrEmpty(co.Email)) { <span><i class="bi bi-envelope"></i> @co.Email</span> }
+                            @if (!string.IsNullOrEmpty(co.City)) { <span class="ms-2"><i class="bi bi-geo-alt"></i> @co.City</span> }
+                        </div>
+                    </div>
+                </button>
+            </li>
+        }
+    </ul>
+    @if (Model.Items.Count > 50)
+    {
+        <div class="text-muted small text-center py-2">@(Model.Items.Count - 50) weitere — Suche verfeinern.</div>
+    }
+}

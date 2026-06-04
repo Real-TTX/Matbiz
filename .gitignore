@@ -1,0 +1,10 @@
+bin/
+obj/
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+.env
+src/Matbiz.Web/Data/app.db
+src/Matbiz.Web/Data/Migrations/*.designer.cs

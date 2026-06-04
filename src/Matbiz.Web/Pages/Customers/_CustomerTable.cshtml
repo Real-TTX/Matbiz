@@ -1,0 +1,95 @@
+@model Matbiz.Web.Pages.Customers.IndexModel
+
+<div id="customer-table">
+    @if (Model.Items.Count == 0)
+    {
+        <p class="text-muted">Keine Kontakte gefunden.</p>
+    }
+    else
+    {
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
+                    {
+                        <th>@col.Label</th>
+                    }
+                    <th class="text-end">Aktionen</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model.Items)
+                {
+                    <tr>
+                        @foreach (var col in Model.Columns.All.Where(x => Model.Columns.Is(x.Key)))
+                        {
+                            <td>
+                                @switch (col.Key)
+                                {
+                                    case "name":
+                                        <a class="text-decoration-none text-reset" href="/Customers/@c.Id"><strong>@c.Name</strong></a>
+                                        break;
+                                    case "company":
+                                        <span class="text-muted">
+                                            @if (c.Company is not null)
+                                            {
+                                                <a class="text-decoration-none text-reset" href="/Companies/@c.Company.Id"><i class="bi bi-building"></i> @c.Company.Name</a>
+                                            }
+                                            else if (!string.IsNullOrEmpty(c.CompanyName))
+                                            {
+                                                <span>@c.CompanyName</span>
+                                            }
+                                        </span>
+                                        break;
+                                    case "tags":
+                                        @if (c.Tags.Count > 0)
+                                        {
+                                            <div class="d-flex flex-wrap gap-1">
+                                                @foreach (var ct in c.Tags.Take(3))
+                                                {
+                                                    <span class="tag-chip" style="background: @TagBg(ct.Tag.Color); color: @ct.Tag.Color;">
+                                                        <i class="bi bi-tag-fill"></i>@ct.Tag.Name
+                                                    </span>
+                                                }
+                                                @if (c.Tags.Count > 3)
+                                                {
+                                                    <span class="text-muted small align-self-center">+@(c.Tags.Count - 3)</span>
+                                                }
+                                            </div>
+                                        }
+                                        break;
+                                    case "email":
+                                        @if (!string.IsNullOrEmpty(c.Email)) { <span><i class="bi bi-envelope text-muted me-1"></i>@c.Email</span> }
+                                        break;
+                                    case "phone":
+                                        @if (!string.IsNullOrEmpty(c.Phone)) { <span><i class="bi bi-telephone text-muted me-1"></i>@c.Phone</span> }
+                                        break;
+                                    case "location":
+                                        @if (!string.IsNullOrEmpty(c.LocationLine)) { <span><i class="bi bi-geo-alt text-muted me-1"></i>@c.LocationLine</span> }
+                                        break;
+                                    case "country":
+                                        @c.Country
+                                        break;
+                                    case "created":
+                                        <span class="text-muted small">@c.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                        break;
+                                }
+                            </td>
+                        }
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a class="btn btn-outline-secondary" title="Öffnen" href="/Customers/@c.Id"><i class="bi bi-folder2-open"></i></a>
+                                <a class="btn btn-outline-secondary" title="Historie" href="/Customers/@c.Id?tab=historie"><i class="bi bi-clock-history"></i></a>
+                                <a class="btn btn-outline-secondary" title="Aufgabe erstellen" href="/Tasks/Edit?customerId=@c.Id"><i class="bi bi-plus-square"></i></a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</div>
+
+@functions {
+    static string TagBg(string color) => color.Length >= 7 ? color[..7] + "1a" : "#eaecef";
+}

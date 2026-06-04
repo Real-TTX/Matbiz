@@ -1,0 +1,68 @@
+@page
+@model Matbiz.Web.Pages.Customers.FieldsModel
+@{ ViewData["Title"] = "Kundenfelder"; }
+
+<h1>Kontaktfelder</h1>
+<p class="text-muted">Zusätzlich zu den Standardfeldern kannst du hier eigene Felder definieren.</p>
+
+<form method="post" asp-page-handler="Add" class="row g-3 mb-4">
+    <div class="col-md-3">
+        <label class="form-label">Schlüssel</label>
+        <input class="form-control" asp-for="Draft.Key" />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Bezeichnung</label>
+        <input class="form-control" asp-for="Draft.Label" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Typ</label>
+        <select class="form-select" asp-for="Draft.Type">
+            @foreach (var t in Enum.GetValues<CustomFieldType>())
+            {
+                <option value="@t">@t</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Sortierung</label>
+        <input type="number" class="form-control" asp-for="Draft.SortOrder" />
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <div class="form-check">
+            <input class="form-check-input" asp-for="Draft.Required" id="req" />
+            <label class="form-check-label" for="req">Pflicht</label>
+        </div>
+    </div>
+    <div class="col-md-1 d-flex align-items-end">
+        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i></button>
+    </div>
+</form>
+
+@if (Model.Items.Count == 0)
+{
+    <p class="text-muted">Noch keine eigenen Felder.</p>
+}
+else
+{
+    <table class="table">
+        <thead><tr><th>Schlüssel</th><th>Bezeichnung</th><th>Typ</th><th>Pflicht</th><th>Sortierung</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var f in Model.Items)
+            {
+                <tr>
+                    <td><code>@f.Key</code></td>
+                    <td>@f.Label</td>
+                    <td>@f.Type</td>
+                    <td>@(f.Required ? "ja" : "")</td>
+                    <td>@f.SortOrder</td>
+                    <td>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@f.Id" class="d-inline"
+                              onsubmit="return confirm('Feld &quot;@f.Label&quot; wirklich löschen?');">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

@@ -1,0 +1,184 @@
+@page "/Tasks/{Id:guid?}"
+@model Matbiz.Web.Pages.Tasks.EditModel
+@using TaskStatus = Matbiz.Web.Modules.Tasks.Models.TaskStatus
+@{ ViewData["Title"] = Model.IsNew ? "Neue Aufgabe" : Model.Input.Title; }
+
+<h1>@(Model.IsNew ? "Neue Aufgabe" : "Aufgabe bearbeiten")</h1>
+
+@if (Model.Input.CustomerId is Guid linkedId && !string.IsNullOrEmpty(Model.SelectedCustomerLabel))
+{
+    <div class="alert alert-info py-2 d-flex align-items-center" style="max-width: 900px;">
+        <i class="bi bi-person-vcard me-2"></i>
+        <span>Verknüpft mit Kunde: <strong>@Model.SelectedCustomerLabel</strong></span>
+        <a class="btn btn-sm btn-outline-primary ms-3" href="/Customers/@linkedId" target="_blank">
+            <i class="bi bi-box-arrow-up-right"></i> Kunde öffnen
+        </a>
+    </div>
+}
+
+<form method="post" class="row g-3" style="max-width: 900px;">
+    @if (!Model.IsNew)
+    {
+        <input type="hidden" asp-for="Input.Id" />
+        <input type="hidden" name="Id" value="@Model.Id" />
+    }
+
+    <div class="col-md-8">
+        <label class="form-label"><i class="bi bi-card-text"></i> Titel *</label>
+        <input class="form-control" asp-for="Input.Title" required />
+        <span asp-validation-for="Input.Title" class="text-danger small"></span>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label"><i class="bi bi-flag"></i> Status</label>
+        <select class="form-select" asp-for="Input.Status">
+            @foreach (var s in Enum.GetValues<TaskStatus>())
+            {
+                <option value="@s">@s</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-2">
+        <label class="form-label"><i class="bi bi-exclamation-circle"></i> Priorität</label>
+        <select class="form-select" asp-for="Input.Priority">
+            @foreach (var p in Enum.GetValues<TaskPriority>())
+            {
+                <option value="@p">@p</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label"><i class="bi bi-calendar3"></i> Fällig</label>
+        <input type="date" class="form-control" asp-for="Input.DueDate" />
+    </div>
+    <div class="col-md-8">
+        <label class="form-label"><i class="bi bi-person"></i> Zuweisung</label>
+        <select class="form-select" asp-for="AssignmentKey">
+            <option value="self">Mir selbst</option>
+            @foreach (var u in Model.Users.Where(u => u.IsActive))
+            {
+                <option value="user:@u.Id">@(u.DisplayName ?? u.Email)</option>
+            }
+            @if (Model.MyTeams.Count > 0)
+            {
+                <optgroup label="Teams">
+                    @foreach (var t in Model.MyTeams)
+                    {
+                        <option value="team:@t.Id">@t.Name</option>
+                    }
+                </optgroup>
+            }
+        </select>
+        <div class="form-text">Aufgaben für ein Team erscheinen bei allen Mitgliedern.</div>
+    </div>
+
+    <div class="col-md-12">
+        <label class="form-label"><i class="bi bi-person-vcard"></i> Kontakt (optional)</label>
+        <partial name="_EntityPicker" model="@(new EntityPickerVm(
+            DialogId: "task-contact-picker",
+            InputName: "Input.CustomerId",
+            SelectedId: Model.Input.CustomerId,
+            SelectedLabel: Model.SelectedCustomerLabel,
+            SearchUrl: "/Customers/Picker",
+            EmptyText: "— Kein Kontakt verknüpft —",
+            DialogTitle: "Kontakt wählen",
+            PlaceholderText: "Name, Firma oder E-Mail…",
+            IconClass: "bi-person-vcard"))" />
+        <div class="form-text">
+            Verknüpfte Aufgaben erscheinen auf der Kontaktseite im Tab „Aufgaben".
+        </div>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label"><i class="bi bi-text-paragraph"></i> Beschreibung</label>
+        <textarea class="form-control" rows="4" asp-for="Input.Description"></textarea>
+    </div>
+
+    <div class="col-12">
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" asp-for="Input.LogCompletionToCustomer" id="logCompletion" />
+            <label class="form-check-label" for="logCompletion">
+                Bei Abschluss als Eintrag in die Kontakt-Historie schreiben
+            </label>
+            <div class="form-text">
+                Standardmäßig aktiv — beim Statuswechsel auf „Erledigt" wird ein Eintrag im verknüpften Kontakt angelegt.
+            </div>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <a class="btn btn-secondary" href="/Tasks"><i class="bi bi-x-lg"></i> Abbrechen</a>
+        @if (!Model.IsNew)
+        {
+            <button type="submit" formaction="?id=@Model.Id&handler=Delete" class="btn btn-outline-danger ms-auto"
+                    onclick="return confirm('Aufgabe wirklich löschen?');">
+                <i class="bi bi-trash"></i> Löschen
+            </button>
+        }
+    </div>
+</form>
+
+@if (!Model.IsNew && Model.Input.History.Count > 0)
+{
+    <h3 class="mt-5"><i class="bi bi-clock-history me-2"></i>Historie</h3>
+    <table class="table table-hover align-middle history-table" style="max-width: 900px;">
+        <thead>
+            <tr>
+                <th style="width: 160px;">Datum / Zeit</th>
+                <th style="width: 140px;">Aktion</th>
+                <th>Details</th>
+                <th style="width: 200px;">Bearbeiter</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var h in Model.Input.History.OrderByDescending(x => x.At))
+            {
+                <tr>
+                    <td class="text-nowrap">
+                        <i class="bi bi-calendar3 text-muted me-1"></i>
+                        <strong>@h.At.ToLocalTime().ToString("dd.MM.yyyy")</strong>
+                        <span class="text-muted ms-1">@h.At.ToLocalTime().ToString("HH:mm")</span>
+                    </td>
+                    <td>
+                        @{ var (iconCls, badgeCls) = ActionStyle(h.Action); }
+                        <span class="history-action @badgeCls"><i class="bi @iconCls"></i> @PrettyAction(h.Action)</span>
+                    </td>
+                    <td>
+                        <div>@h.Details</div>
+                        @if (!string.IsNullOrEmpty(h.OnBehalfOfAdminId))
+                        {
+                            <small class="text-warning"><i class="bi bi-shield-lock"></i> via Remote-Zugriff durch @(Model.ActorName(h.OnBehalfOfAdminId))</small>
+                        }
+                    </td>
+                    <td><i class="bi bi-person-circle text-muted me-1"></i>@Model.ActorName(h.ActorUserId)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@functions {
+    static (string icon, string css) ActionStyle(string action) => action switch
+    {
+        "Created"  => ("bi-plus-circle", "act-created"),
+        "Renamed"  => ("bi-pencil", "act-updated"),
+        "Status"   => ("bi-arrow-repeat", "act-updated"),
+        "Priority" => ("bi-flag", "act-updated"),
+        "DueDate"  => ("bi-calendar3", "act-updated"),
+        "Assignee" => ("bi-person", "act-updated"),
+        "Customer" => ("bi-person-vcard", "act-updated"),
+        _          => ("bi-arrow-right-circle", "act-default")
+    };
+
+    static string PrettyAction(string a) => a switch
+    {
+        "Created" => "Angelegt",
+        "Renamed" => "Titel",
+        "Status"  => "Status",
+        "Priority" => "Priorität",
+        "DueDate" => "Fälligkeit",
+        "Assignee" => "Zuweisung",
+        "Customer" => "Kontakt",
+        _ => a
+    };
+}

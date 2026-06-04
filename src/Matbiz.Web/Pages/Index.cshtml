@@ -1,0 +1,131 @@
+@page
+@model Matbiz.Web.Pages.IndexModel
+@using Matbiz.Web.Modules.Dashboard
+@using TaskStatus = Matbiz.Web.Modules.Tasks.Models.TaskStatus
+@{
+    ViewData["Title"] = "Dashboard";
+    var widgets = Model.Config.Widgets.OrderBy(w => w.Order).ToList();
+}
+
+<div class="d-flex align-items-center mb-4">
+    <div class="me-auto">
+        <h1 class="mb-0">Hallo @Model.FirstName</h1>
+        <div class="text-muted">@DateTime.Now.ToString("dddd, dd. MMMM yyyy")</div>
+    </div>
+    <details class="dashboard-config-wrap">
+        <summary class="btn btn-outline-secondary"><i class="bi bi-gear"></i> Anpassen</summary>
+        <div class="dashboard-config-panel">
+            <h6 class="mb-3"><i class="bi bi-grid me-2"></i>Dashboard anpassen</h6>
+            <form method="post" asp-page-handler="SaveConfig">
+                @for (var i = 0; i < widgets.Count; i++)
+                {
+                    var w = widgets[i];
+                    var meta = DashboardWidgetMeta.For(w.Type);
+                    <div class="widget-row">
+                        <input type="hidden" name="dto.Widgets[@i].Type" value="@((int)w.Type)" />
+                        <input type="hidden" name="dto.Widgets[@i].Order" value="@i" />
+
+                        <div class="widget-row-grip">
+                            <button class="btn btn-sm btn-link p-0 d-block lh-1"
+                                    formaction="?handler=Move&type=@w.Type&delta=-1" formmethod="post"
+                                    @(i == 0 ? "disabled" : "") title="Nach oben">
+                                <i class="bi bi-chevron-up"></i>
+                            </button>
+                            <button class="btn btn-sm btn-link p-0 d-block lh-1"
+                                    formaction="?handler=Move&type=@w.Type&delta=1" formmethod="post"
+                                    @(i == widgets.Count - 1 ? "disabled" : "") title="Nach unten">
+                                <i class="bi bi-chevron-down"></i>
+                            </button>
+                        </div>
+
+                        <div class="form-check flex-grow-1 mb-0">
+                            <input type="checkbox" class="form-check-input"
+                                   name="dto.Widgets[@i].Enabled" value="true"
+                                   id="w-en-@i" @(w.Enabled ? "checked" : "") />
+                            <label class="form-check-label" for="w-en-@i">
+                                <i class="bi @meta.Icon"></i> @meta.Title
+                            </label>
+                        </div>
+
+                        <input type="number" class="form-control form-control-sm widget-count"
+                               name="dto.Widgets[@i].MaxItems" value="@w.MaxItems"
+                               min="1" max="50" title="Anzahl Einträge" />
+                    </div>
+                }
+                <div class="mt-3 d-flex justify-content-end">
+                    <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+                </div>
+            </form>
+        </div>
+    </details>
+</div>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Tasks?status=overdue">
+            <div class="stat-icon bg-overdue"><i class="bi bi-exclamation-triangle"></i></div>
+            <div>
+                <div class="stat-value">@Model.OverdueCount</div>
+                <div class="stat-label">Überfällig</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Tasks?status=today">
+            <div class="stat-icon bg-today"><i class="bi bi-calendar-day"></i></div>
+            <div>
+                <div class="stat-value">@Model.TodayCount</div>
+                <div class="stat-label">Heute fällig</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Tasks?status=week">
+            <div class="stat-icon bg-week"><i class="bi bi-calendar-week"></i></div>
+            <div>
+                <div class="stat-value">@Model.WeekCount</div>
+                <div class="stat-label">Diese Woche</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Tasks?status=open">
+            <div class="stat-icon bg-open"><i class="bi bi-list-task"></i></div>
+            <div>
+                <div class="stat-value">@Model.OpenCount</div>
+                <div class="stat-label">Offen gesamt</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    @foreach (var w in widgets.Where(x => x.Enabled))
+    {
+        var meta = DashboardWidgetMeta.For(w.Type);
+        switch (w.Type)
+        {
+            case DashboardWidget.Overdue:
+                @await Html.PartialAsync("_DashTaskPanel", new DashTaskPanelVm(meta.Title, meta.Icon, Model.Overdue.Take(w.MaxItems).ToList(), "Nichts überfällig.", Model.Today, Model.CustomerNames, "/Tasks?status=overdue"));
+                break;
+            case DashboardWidget.Today:
+                @await Html.PartialAsync("_DashTaskPanel", new DashTaskPanelVm(meta.Title, meta.Icon, Model.DueToday.Take(w.MaxItems).ToList(), "Heute keine fälligen Aufgaben.", Model.Today, Model.CustomerNames, "/Tasks?status=today"));
+                break;
+            case DashboardWidget.Week:
+                @await Html.PartialAsync("_DashTaskPanel", new DashTaskPanelVm(meta.Title, meta.Icon, Model.Week.Take(w.MaxItems).ToList(), "Keine Aufgaben in den nächsten 7 Tagen.", Model.Today, Model.CustomerNames, "/Tasks?status=week"));
+                break;
+            case DashboardWidget.TeamUpcoming:
+                @await Html.PartialAsync("_DashTaskPanel", new DashTaskPanelVm(meta.Title, meta.Icon, Model.TeamUpcoming.Take(w.MaxItems).ToList(), "Keine offenen Team-Aufgaben.", Model.Today, Model.CustomerNames, "/Tasks?scope=team"));
+                break;
+            case DashboardWidget.NewContacts:
+                @await Html.PartialAsync("_DashNewContacts", Model.NewContacts);
+                break;
+            case DashboardWidget.NewCompanies:
+                @await Html.PartialAsync("_DashNewCompanies", Model.NewCompanies);
+                break;
+            case DashboardWidget.RecentHistory:
+                @await Html.PartialAsync("_DashRecentHistory", Model.RecentHistory);
+                break;
+        }
+    }
+</div>

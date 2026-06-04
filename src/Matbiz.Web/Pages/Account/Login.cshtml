@@ -1,0 +1,45 @@
+@page
+@model LoginModel
+@inject BrandingService Branding
+@{
+    Layout = "_AnonymousLayout";
+    ViewData["Title"] = "Anmelden";
+    var brand = await Branding.GetAsync();
+}
+
+<div class="login-card">
+    @if (brand.LogoBytes is { Length: > 0 })
+    {
+        <img src="/branding/logo?v=@brand.Version" alt="@brand.AppName" class="login-logo" />
+    }
+    else
+    {
+        <h1>@brand.AppName</h1>
+    }
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger small">@Model.ErrorMessage</div>
+    }
+
+    <form method="post">
+        <div class="form-floating mb-3">
+            <input asp-for="Input.Email" class="form-control" autocomplete="username" placeholder="E-Mail" />
+            <label asp-for="Input.Email">E-Mail</label>
+            <span asp-validation-for="Input.Email" class="text-danger small"></span>
+        </div>
+
+        <div class="form-floating mb-3">
+            <input asp-for="Input.Password" type="password" class="form-control" autocomplete="current-password" placeholder="Passwort" />
+            <label asp-for="Input.Password">Passwort</label>
+            <span asp-validation-for="Input.Password" class="text-danger small"></span>
+        </div>
+
+        <div class="form-check mb-3">
+            <input asp-for="Input.RememberMe" class="form-check-input" id="rememberMe" />
+            <label class="form-check-label" for="rememberMe">Angemeldet bleiben</label>
+        </div>
+
+        <button type="submit" class="w-100 btn btn-primary btn-lg">Anmelden</button>
+    </form>
+</div>

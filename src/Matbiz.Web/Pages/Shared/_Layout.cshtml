@@ -1,0 +1,112 @@
+@inject BrandingService Branding
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject UserManager<Matbiz.Web.Data.ApplicationUser> Users
+@{
+    var brand = await Branding.GetAsync();
+    var primary = string.IsNullOrWhiteSpace(brand.PrimaryColor) ? "#1b6ec2" : brand.PrimaryColor;
+    var accent1 = brand.AccentColor1;
+    var accent2 = brand.AccentColor2;
+    var onPrimary = Matbiz.Web.Modules.SystemSettings.ContrastHelper.OnColor(primary);
+
+    // Theme is per-user; anonymous (login screen) follows the OS.
+    var theme = "system";
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var u = await Users.GetUserAsync(User);
+        if (u is not null) theme = u.Theme.ToString().ToLowerInvariant();
+    }
+
+    var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<!DOCTYPE html>
+<html lang="de" data-theme="@theme">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – @brand.AppName</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --brand-primary: @primary;
+            --brand-accent-1: @accent1;
+            --brand-accent-2: @accent2;
+            --on-primary: @onPrimary;
+        }
+        .btn-primary, .bg-primary {
+            background-color: var(--brand-primary) !important;
+            border-color: var(--brand-primary) !important;
+            color: var(--on-primary) !important;
+        }
+        a { color: var(--brand-primary); }
+        .btn-primary:hover { filter: brightness(0.92); }
+    </style>
+    <meta name="csrf-token" content="@csrf" />
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script>
+        // Send the antiforgery token with every htmx-triggered request so
+        // server-side handlers can validate without us touching every form.
+        // Listening on `document` (not document.body) so this works in <head>
+        // where the body element doesn't exist yet — events bubble to document.
+        document.addEventListener('htmx:configRequest', function (evt) {
+            var token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+            if (token) evt.detail.headers['RequestVerificationToken'] = token;
+        });
+
+        // Generic entity-picker dialog (used for contacts + companies). The
+        // dialog records which hidden input it writes back into via its own
+        // data-target attribute. The select/clear functions dispatch a
+        // 'change' event on the hidden input so forms can react (e.g. show /
+        // hide a freetext fallback field).
+        window.entityPicker = {
+            open: function (dialogId, inputName) {
+                var d = document.getElementById(dialogId);
+                if (!d) return;
+                d.dataset.target = inputName;
+                if (typeof d.showModal === 'function') d.showModal();
+                else d.setAttribute('open', '');
+                var s = document.getElementById(dialogId + '-search');
+                if (s) { s.value = ''; setTimeout(function () { s.focus(); }, 50); }
+            },
+            select: function (btn) {
+                var dialog = btn.closest('dialog');
+                if (!dialog) return;
+                var inputName = dialog.dataset.target;
+                if (!inputName) return;
+                var key = inputName.replace(/\./g, '-');
+                var idEl = document.getElementById(key + '-id');
+                var lblEl = document.getElementById(key + '-label');
+                if (idEl) { idEl.value = btn.dataset.id; idEl.dispatchEvent(new Event('change', { bubbles: true })); }
+                if (lblEl) lblEl.textContent = btn.dataset.label;
+                dialog.close();
+            },
+            clear: function (inputName, emptyText) {
+                var key = inputName.replace(/\./g, '-');
+                var idEl = document.getElementById(key + '-id');
+                var lblEl = document.getElementById(key + '-label');
+                if (idEl) { idEl.value = ''; idEl.dispatchEvent(new Event('change', { bubbles: true })); }
+                if (lblEl) lblEl.textContent = emptyText || '— nichts ausgewählt —';
+            }
+        };
+        // Backwards-compatible alias — the customer picker partial still references this name.
+        window.customerPicker = window.entityPicker;
+    </script>
+</head>
+<body>
+    <partial name="_ImpersonationBanner" />
+
+    <div class="page">
+        <aside class="sidebar">
+            <partial name="_NavMenu" model="@brand" />
+        </aside>
+        <main>
+            <article class="content px-4 py-3">
+                @RenderBody()
+            </article>
+        </main>
+    </div>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

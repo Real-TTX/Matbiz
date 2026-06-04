@@ -1,0 +1,50 @@
+@model Matbiz.Web.Pages.Customers.PickerModel
+
+@if (Model.Items.Count == 0)
+{
+    <div class="text-muted text-center py-4">
+        <i class="bi bi-search"></i>
+        @(string.IsNullOrEmpty(Model.Query) ? " Tippe zum Suchen…" : $" Keine Treffer für „{Model.Query}\".")
+    </div>
+}
+else
+{
+    <ul class="picker-list">
+        @foreach (var c in Model.Items.Take(50))
+        {
+            var label = string.IsNullOrEmpty(c.CompanyName) ? c.Name : $"{c.Name} ({c.CompanyName})";
+            <li>
+                <button type="button" class="picker-row"
+                        data-id="@c.Id" data-label="@label"
+                        onclick="entityPicker.select(this)">
+                    <div class="picker-avatar">@Initials(c.Name)</div>
+                    <div class="picker-body">
+                        <div class="picker-name">@c.Name</div>
+                        @if (!string.IsNullOrEmpty(c.CompanyName))
+                        {
+                            <div class="picker-sub"><i class="bi bi-building"></i> @c.CompanyName</div>
+                        }
+                        <div class="picker-sub small">
+                            @if (!string.IsNullOrEmpty(c.Email)) { <span><i class="bi bi-envelope"></i> @c.Email</span> }
+                            @if (!string.IsNullOrEmpty(c.City)) { <span class="ms-2"><i class="bi bi-geo-alt"></i> @c.City</span> }
+                        </div>
+                    </div>
+                </button>
+            </li>
+        }
+    </ul>
+    @if (Model.Items.Count > 50)
+    {
+        <div class="text-muted small text-center py-2">@(Model.Items.Count - 50) weitere — Suche verfeinern.</div>
+    }
+}
+
+@functions {
+    static string Initials(string name)
+    {
+        var parts = name.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return parts.Length == 0 ? "?" :
+            parts.Length == 1 ? parts[0][..1].ToUpper() :
+            (parts[0][0].ToString() + parts[^1][0]).ToUpper();
+    }
+}

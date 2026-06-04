@@ -1,0 +1,54 @@
+@page
+@model Matbiz.Web.Pages.Customers.CreateModel
+@{ ViewData["Title"] = "Neuer Kontakt"; }
+
+<h1>Neuer Kontakt</h1>
+
+<form method="post" class="row g-3" style="max-width: 800px;">
+    <div class="col-md-6">
+        <label class="form-label">Name *</label>
+        <input class="form-control" asp-for="Input.Name" required />
+        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Firma</label>
+        <partial name="_EntityPicker" model="@(new EntityPickerVm(
+            DialogId: "create-company-picker",
+            InputName: "Input.CompanyId",
+            SelectedId: Model.Input.CompanyId,
+            SelectedLabel: null,
+            SearchUrl: "/Companies/Picker",
+            EmptyText: "— Keine Firma verknüpft —",
+            DialogTitle: "Firma wählen",
+            PlaceholderText: "Name, Ort oder E-Mail…",
+            IconClass: "bi-building"))" />
+        <input class="form-control mt-2" id="create-companyname" asp-for="Input.CompanyName"
+               placeholder="…oder Firmenname als Freitext"
+               style="display: @(Model.Input.CompanyId is not null ? "none" : "block");" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">E-Mail</label>
+        <input class="form-control" asp-for="Input.Email" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Telefon</label>
+        <input class="form-control" asp-for="Input.Phone" />
+    </div>
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Anlegen</button>
+        <a class="btn btn-secondary" href="/Customers"><i class="bi bi-x-lg"></i> Abbrechen</a>
+    </div>
+</form>
+
+<script>
+    (function () {
+        var hidden = document.getElementById('Input-CompanyId-id');
+        var freetext = document.getElementById('create-companyname');
+        if (!hidden || !freetext) return;
+        hidden.addEventListener('change', function () {
+            var hasLink = !!hidden.value;
+            freetext.style.display = hasLink ? 'none' : 'block';
+            if (hasLink) freetext.value = '';
+        });
+    })();
+</script>

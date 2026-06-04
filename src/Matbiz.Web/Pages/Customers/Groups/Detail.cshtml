@@ -1,0 +1,253 @@
+@page "/Customers/Groups/Detail/{Id:guid}"
+@model Matbiz.Web.Pages.Customers.Groups.DetailModel
+@{
+    ViewData["Title"] = Model.Group?.Name ?? "Gruppe";
+    var g = Model.Group!;
+    var isDyn = g.Kind == CustomerGroupKind.Dynamic;
+    var isCompany = Model.IsCompanyGroup;
+}
+
+<a class="btn btn-link mb-2 ps-0" href="/Customers/Groups"><i class="bi bi-arrow-left"></i> Zurück</a>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+
+<div class="d-flex align-items-start mb-3">
+    <div class="group-icon-lg @(isDyn ? "dyn" : "")">
+        <i class="bi @(isDyn ? "bi-funnel-fill" : "bi-collection-fill")"></i>
+    </div>
+    <div class="ms-3 flex-grow-1">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <h1 class="mb-0">@g.Name</h1>
+            <span class="badge @(isDyn ? "bg-info-subtle text-info" : "bg-secondary-subtle text-secondary")">
+                @(isDyn ? "Dynamisch" : "Statisch")
+            </span>
+            <span class="badge bg-secondary-subtle text-secondary">
+                <i class="bi @(isCompany ? "bi-building" : "bi-person-vcard")"></i>
+                @(isCompany ? "Firmen" : "Kontakte")
+            </span>
+        </div>
+        @if (!string.IsNullOrEmpty(g.Description))
+        {
+            <div class="text-muted">@g.Description</div>
+        }
+        <div class="text-muted small mt-1">
+            <i class="bi bi-people"></i> @Model.MemberCount Mitglied(er)
+        </div>
+    </div>
+    <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Gruppe wirklich löschen?');">
+        <button class="btn btn-outline-danger"><i class="bi bi-trash"></i> Löschen</button>
+    </form>
+</div>
+
+<ul class="nav nav-tabs mb-4">
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "members" ? "active" : "")" href="/Customers/Groups/Detail/@g.Id?tab=members">
+            <i class="bi bi-people"></i> Mitglieder
+            <span class="badge bg-secondary ms-1">@Model.MemberCount</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link tab-secondary @(Model.ActiveTab == "settings" ? "active" : "")" href="/Customers/Groups/Detail/@g.Id?tab=settings">
+            <i class="bi bi-gear"></i> Einstellungen
+            @if (isDyn && Model.Rules.Conditions.Count > 0)
+            {
+                <span class="badge bg-secondary ms-1">@Model.Rules.Conditions.Count Regel(n)</span>
+            }
+        </a>
+    </li>
+</ul>
+
+<div class="tab-panel">
+@switch (Model.ActiveTab)
+{
+    case "members":
+        @if (!isDyn)
+        {
+            <form method="post" asp-page-handler="AddMember" class="row g-3 mb-3" style="max-width: 700px;">
+                <div class="col-md-8">
+                    <select class="form-select" asp-for="StaticAddId">
+                        <option value="@Guid.Empty">@(isCompany ? "Firma auswählen…" : "Kontakt auswählen…")</option>
+                        @foreach (var (id, label) in isCompany ? Model.AvailableCompaniesList : Model.AvailableContacts)
+                        {
+                            <option value="@id">@label</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
+                </div>
+            </form>
+        }
+        else
+        {
+            <div class="alert alert-info py-2 small">
+                <i class="bi bi-info-circle"></i> Mitglieder werden automatisch aus den Regeln berechnet
+                — siehe Tab <a href="/Customers/Groups/Detail/@g.Id?tab=settings">Einstellungen</a>.
+            </div>
+        }
+
+        @if (Model.MemberCount == 0)
+        {
+            <p class="text-muted">Keine Mitglieder.</p>
+        }
+        else if (isCompany)
+        {
+            <table class="table table-hover">
+                <thead><tr><th>Name</th><th>Ort</th><th>E-Mail</th>@if (!isDyn) { <th></th> }</tr></thead>
+                <tbody>
+                    @foreach (var c in Model.ResolvedCompanies)
+                    {
+                        <tr>
+                            <td><a class="text-decoration-none text-reset" href="/Companies/@c.Id"><strong>@c.Name</strong></a></td>
+                            <td>@c.City</td>
+                            <td>@c.Email</td>
+                            @if (!isDyn)
+                            {
+                                <td class="text-end">
+                                    <form method="post" asp-page-handler="RemoveMember" asp-route-memberId="@c.Id" class="d-inline">
+                                        <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-x"></i></button>
+                                    </form>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <table class="table table-hover">
+                <thead><tr><th>Name</th><th>Firma</th><th>Ort</th>@if (!isDyn) { <th></th> }</tr></thead>
+                <tbody>
+                    @foreach (var c in Model.ResolvedContacts)
+                    {
+                        <tr>
+                            <td><a class="text-decoration-none text-reset" href="/Customers/@c.Id"><strong>@c.Name</strong></a></td>
+                            <td class="text-muted">@(c.Company?.Name ?? c.CompanyName)</td>
+                            <td>@c.City</td>
+                            @if (!isDyn)
+                            {
+                                <td class="text-end">
+                                    <form method="post" asp-page-handler="RemoveMember" asp-route-memberId="@c.Id" class="d-inline">
+                                        <button class="btn btn-sm btn-outline-secondary"><i class="bi bi-x"></i></button>
+                                    </form>
+                                </td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        break;
+
+    case "settings":
+        <div style="max-width: 900px;">
+            <h3 class="mb-3 mt-1"><i class="bi bi-card-list me-2"></i>Allgemein</h3>
+            <form method="post" asp-page-handler="Settings" class="row g-3 mb-5">
+                <div class="col-md-6">
+                    <label class="form-label">Name *</label>
+                    <input class="form-control" asp-for="Name" required />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Beschreibung</label>
+                    <input class="form-control" asp-for="Description" />
+                </div>
+                <div>
+                    <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+                </div>
+            </form>
+
+            @if (isDyn)
+            {
+                <h3 class="mb-3"><i class="bi bi-funnel me-2"></i>Regeln</h3>
+                <p class="text-muted small">
+                    Regeln gelten für @(isCompany ? "Firmen" : "Kontakte").
+                    @if (isCompany)
+                    {
+                        <text>Eigene Felder werden bei Firmen-Gruppen nicht ausgewertet.</text>
+                    }
+                </p>
+                <form method="post" asp-page-handler="SaveRules">
+                    <div class="mb-3">
+                        <label class="form-label">Verknüpfung</label>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" asp-for="Rules.Combinator" value="@RuleCombinator.All" id="comb-all" />
+                            <label class="btn btn-outline-secondary btn-sm" for="comb-all">ALLE (UND)</label>
+                            <input type="radio" class="btn-check" asp-for="Rules.Combinator" value="@RuleCombinator.Any" id="comb-any" />
+                            <label class="btn btn-outline-secondary btn-sm" for="comb-any">MINDESTENS EINE (ODER)</label>
+                        </div>
+                    </div>
+
+                    @for (var i = 0; i < Model.Rules.Conditions.Count; i++)
+                    {
+                        var idx = i;
+                        var cond = Model.Rules.Conditions[idx];
+                        <div class="rule-row">
+                            <select class="form-select form-select-sm" style="max-width: 180px;" asp-for="Rules.Conditions[idx].Field">
+                                <option value="@RuleField.Tag">Tag</option>
+                                <option value="@RuleField.Name">Name</option>
+                                @if (!isCompany)
+                                {
+                                    <option value="@RuleField.CompanyName">Firma</option>
+                                }
+                                <option value="@RuleField.Email">E-Mail</option>
+                                <option value="@RuleField.City">Ort</option>
+                                <option value="@RuleField.Country">Land</option>
+                                <option value="@RuleField.Notes">@(isCompany ? "Beschreibung" : "Notizen")</option>
+                                @if (!isCompany)
+                                {
+                                    <option value="@RuleField.CustomField">Eigenes Feld…</option>
+                                }
+                            </select>
+
+                            @if (cond.Field == RuleField.CustomField && !isCompany)
+                            {
+                                <select class="form-select form-select-sm" style="max-width: 180px;" asp-for="Rules.Conditions[idx].CustomFieldKey">
+                                    <option value="">– Feld wählen –</option>
+                                    @foreach (var f in Model.CustomFields)
+                                    {
+                                        <option value="@f.Key">@f.Label</option>
+                                    }
+                                </select>
+                            }
+
+                            <select class="form-select form-select-sm" style="max-width: 180px;" asp-for="Rules.Conditions[idx].Operator">
+                                @foreach (var op in Matbiz.Web.Pages.Customers.Groups.DetailModel.OperatorsFor(cond.Field))
+                                {
+                                    <option value="@op">@Matbiz.Web.Pages.Customers.Groups.DetailModel.OperatorLabel(op)</option>
+                                }
+                            </select>
+
+                            @if (cond.Operator != RuleOperator.IsEmpty && cond.Operator != RuleOperator.IsNotEmpty)
+                            {
+                                <input class="form-control form-control-sm" style="max-width: 220px;" placeholder="Wert" asp-for="Rules.Conditions[idx].Value" />
+                            }
+                            else
+                            {
+                                <input type="hidden" asp-for="Rules.Conditions[idx].Value" />
+                            }
+
+                            <button class="btn btn-sm btn-outline-danger" title="Entfernen"
+                                    formaction="?handler=RemoveCondition&idx=@idx" formmethod="post">
+                                <i class="bi bi-x"></i>
+                            </button>
+                        </div>
+                    }
+
+                    <button type="submit" class="btn btn-sm btn-outline-primary mb-3"
+                            formaction="?handler=AddCondition" formmethod="post">
+                        <i class="bi bi-plus-lg"></i> Bedingung hinzufügen
+                    </button>
+
+                    <div>
+                        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Regeln speichern (wendet sofort an)</button>
+                    </div>
+                </form>
+            }
+        </div>
+        break;
+}
+</div>

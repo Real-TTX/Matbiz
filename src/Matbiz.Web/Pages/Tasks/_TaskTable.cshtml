@@ -1,0 +1,96 @@
+@model Matbiz.Web.Pages.Tasks.IndexModel
+@using TaskStatus = Matbiz.Web.Modules.Tasks.Models.TaskStatus
+
+<div id="task-table">
+    @{ var items = Model.Filtered.ToList(); }
+    @if (items.Count == 0)
+    {
+        <div class="empty-state">
+            <i class="bi bi-clipboard-check"></i>
+            <p class="mt-2 mb-0 text-muted">Keine Aufgaben in dieser Ansicht.</p>
+        </div>
+    }
+    else
+    {
+        <table class="table table-hover align-middle">
+            <thead>
+                <tr>
+                    <th style="width: 40px;"></th>
+                    <th>Titel</th>
+                    <th style="width: 130px;">Priorität</th>
+                    <th style="width: 130px;">Status</th>
+                    <th>Zuweisung</th>
+                    <th>Kontakt</th>
+                    <th style="width: 120px;">Fällig</th>
+                    <th style="width: 50px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in items)
+                {
+                    var overdue = Model.IsOverdue(t);
+                    var returnUrl = $"/Tasks?scope={Model.Scope}&status={Model.Status}";
+                    <tr class="@(t.Status == TaskStatus.Done ? "task-row-done" : "") @(overdue ? "task-row-overdue" : "")">
+                        <td>
+                            <form method="post" action="/Tasks/Toggle?id=@t.Id&returnUrl=@Uri.EscapeDataString(returnUrl)" class="task-check">
+                                @Html.AntiForgeryToken()
+                                <input type="checkbox"
+                                       hx-post="/Tasks/Toggle?id=@t.Id"
+                                       hx-swap="none"
+                                       @(t.Status == TaskStatus.Done ? "checked" : "") />
+                                <span class="check-mark"><i class="bi bi-check-lg"></i></span>
+                            </form>
+                        </td>
+                        <td><a class="task-title-link" href="/Tasks/@t.Id">@t.Title</a></td>
+                        <td>
+                            @switch (t.Priority)
+                            {
+                                case TaskPriority.Urgent: <span class="meta-pill prio-urgent"><i class="bi bi-fire"></i> Dringend</span>; break;
+                                case TaskPriority.High:   <span class="meta-pill prio-high"><i class="bi bi-flag-fill"></i> Hoch</span>; break;
+                                case TaskPriority.Low:    <span class="meta-pill prio-low"><i class="bi bi-flag"></i> Niedrig</span>; break;
+                                default:                  <span class="meta-pill prio-normal"><i class="bi bi-flag"></i> Normal</span>; break;
+                            }
+                        </td>
+                        <td>
+                            @switch (t.Status)
+                            {
+                                case TaskStatus.InProgress: <span class="meta-pill status-progress"><i class="bi bi-arrow-repeat"></i> In Arbeit</span>; break;
+                                case TaskStatus.Done:       <span class="meta-pill status-done"><i class="bi bi-check-circle-fill"></i> Erledigt</span>; break;
+                                case TaskStatus.Cancelled:  <span class="meta-pill status-cancelled"><i class="bi bi-x-circle"></i> Abgebrochen</span>; break;
+                                default:                    <span class="meta-pill status-open"><i class="bi bi-circle"></i> Offen</span>; break;
+                            }
+                        </td>
+                        <td>
+                            @if (t.AssignedTeamId is not null)
+                            {
+                                <span><i class="bi bi-people-fill text-muted me-1"></i>@Model.AssigneeLabel(t).Replace("Team: ", "")</span>
+                            }
+                            else
+                            {
+                                <span><i class="bi bi-person text-muted me-1"></i>@Model.AssigneeLabel(t)</span>
+                            }
+                        </td>
+                        <td>
+                            @if (t.CustomerId is Guid cid && Model.CustomerNames.TryGetValue(cid, out var cname))
+                            {
+                                <a class="meta-pill customer-pill" href="/Customers/@cid">
+                                    <i class="bi bi-person-vcard"></i> @cname
+                                </a>
+                            }
+                        </td>
+                        <td>
+                            @if (t.DueDate is DateTime due)
+                            {
+                                <span class="@(overdue ? "text-danger fw-bold" : "")"><i class="bi bi-calendar3"></i> @due.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <a class="btn btn-link btn-sm text-muted py-0" href="/Tasks/@t.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="small text-muted">@items.Count Aufgabe(n)</div>
+    }
+</div>

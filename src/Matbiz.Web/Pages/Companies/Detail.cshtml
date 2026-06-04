@@ -1,0 +1,325 @@
+@page "/Companies/{Id:guid}"
+@model Matbiz.Web.Pages.Companies.DetailModel
+@{
+    ViewData["Title"] = Model.Current?.Name ?? "Firma";
+    var c = Model.Current!;
+}
+
+<a class="btn btn-link mb-2 ps-0" href="/Companies"><i class="bi bi-arrow-left"></i> Übersicht</a>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+
+<div class="customer-header">
+    <div class="d-flex align-items-start">
+        <div class="customer-avatar company-avatar"><i class="bi bi-building"></i></div>
+        <div class="ms-3 flex-grow-1">
+            @if (!string.IsNullOrEmpty(c.Description))
+            {
+                <div class="text-muted small">@c.Description</div>
+            }
+            <h1 class="mb-1">@c.Name</h1>
+            <div class="customer-meta">
+                @if (!string.IsNullOrEmpty(c.Email)) { <span><i class="bi bi-envelope"></i> <a href="mailto:@c.Email">@c.Email</a></span> }
+                @if (!string.IsNullOrEmpty(c.Phone)) { <span><i class="bi bi-telephone"></i> <a href="tel:@c.Phone">@c.Phone</a></span> }
+                @{
+                    var loc = c.LocationLine;
+                    var country = string.IsNullOrEmpty(c.Country) ? "" : ", " + c.Country;
+                }
+                @if (!string.IsNullOrEmpty(loc)) { <span><i class="bi bi-geo-alt"></i> @loc@country</span> }
+                <span class="text-muted"><i class="bi bi-calendar3"></i> Angelegt @c.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                <span class="text-muted"><i class="bi bi-person"></i> @c.Contacts.Count Kontakt(e)</span>
+            </div>
+
+            <div class="tag-editor-inline mt-2">
+                @foreach (var ct in c.Tags)
+                {
+                    <form method="post" asp-page-handler="RemoveTag" asp-route-tagId="@ct.TagId" class="d-inline">
+                        <button type="submit" class="tag-chip-remove"
+                                style="background: @TagBg(ct.Tag.Color); color: @ct.Tag.Color;"
+                                title="@(ct.Tag.Name) entfernen">
+                            <i class="bi bi-tag-fill"></i>@ct.Tag.Name
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </form>
+                }
+                <details class="tag-add-wrap">
+                    <summary class="tag-add-chip"><i class="bi bi-plus-lg"></i> Tag</summary>
+                    <form method="post" asp-page-handler="AddTag" class="tag-add-form ms-2">
+                        <input name="NewTag" list="company-tags-options" placeholder="Tag-Name…" autocomplete="off" autofocus />
+                        <button type="submit" class="btn btn-sm btn-primary py-0 px-2" style="font-size: 0.78rem;"><i class="bi bi-check2"></i></button>
+                        <datalist id="company-tags-options">
+                            @foreach (var t in Model.AllTags.Where(t => !c.Tags.Any(ct => ct.TagId == t.Id)))
+                            {
+                                <option value="@t.Name" />
+                            }
+                        </datalist>
+                    </form>
+                </details>
+            </div>
+        </div>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mt-4">
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "stammdaten" ? "active" : "")" href="/Companies/@c.Id?tab=stammdaten">
+            <i class="bi bi-card-list"></i> Stammdaten
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "kontakte" ? "active" : "")" href="/Companies/@c.Id?tab=kontakte">
+            <i class="bi bi-person-vcard"></i> Kontakte
+            @if (c.Contacts.Count > 0)
+            {
+                <span class="badge bg-secondary ms-1">@c.Contacts.Count</span>
+            }
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "historie" ? "active" : "")" href="/Companies/@c.Id?tab=historie">
+            <i class="bi bi-clock-history"></i> Historie
+            @if (c.History.Count > 0)
+            {
+                <span class="badge bg-secondary ms-1">@c.History.Count</span>
+            }
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "dateien" ? "active" : "")" href="/Companies/@c.Id?tab=dateien">
+            <i class="bi bi-paperclip"></i> Dateien
+            @if (Model.LibraryFiles.Count > 0)
+            {
+                <span class="badge bg-secondary ms-1">@Model.LibraryFiles.Count</span>
+            }
+        </a>
+    </li>
+</ul>
+
+<div class="tab-panel">
+@switch (Model.ActiveTab)
+{
+    case "historie":
+        <div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+            <form method="post" asp-page-handler="Note" class="d-flex gap-2" style="max-width: 500px;">
+                <input type="hidden" name="IncludeContacts" value="@Model.IncludeContacts" />
+                <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-chat-dots"></i></span>
+                    <input class="form-control" placeholder="Notiz hinzufügen…" name="NewNote" />
+                    <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Notiz</button>
+                </div>
+            </form>
+
+            <form method="get" class="form-check ms-auto">
+                <input type="hidden" name="tab" value="historie" />
+                <input class="form-check-input" type="checkbox" name="IncludeContacts" value="true"
+                       id="includeContacts" @(Model.IncludeContacts ? "checked" : "") onchange="this.form.submit()" />
+                <label class="form-check-label" for="includeContacts">
+                    <i class="bi bi-person-vcard"></i> Verknüpfte Kontakte einbeziehen
+                </label>
+            </form>
+        </div>
+
+        @if (Model.History.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="bi bi-clock-history"></i>
+                <p class="mt-2 mb-0 text-muted">Noch keine Einträge.</p>
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover align-middle history-table" style="max-width: 1000px;">
+                <thead>
+                    <tr>
+                        <th style="width: 160px;">Datum / Zeit</th>
+                        <th style="width: 140px;">Aktion</th>
+                        <th>Details</th>
+                        <th style="width: 200px;">Quelle</th>
+                        <th style="width: 180px;">Bearbeiter</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var h in Model.History)
+                    {
+                        var fromContact = h.SourceContactId is not null;
+                        <tr class="@(fromContact ? "history-from-contact" : "")">
+                            <td class="text-nowrap">
+                                <i class="bi bi-calendar3 text-muted me-1"></i>
+                                <strong>@h.At.ToLocalTime().ToString("dd.MM.yyyy")</strong>
+                                <span class="text-muted ms-1">@h.At.ToLocalTime().ToString("HH:mm")</span>
+                            </td>
+                            <td>
+                                @{ var (iconCls, badgeCls) = ActionStyle(h.Action); }
+                                <span class="history-action @badgeCls"><i class="bi @iconCls"></i> @h.Action</span>
+                            </td>
+                            <td>
+                                <div>@h.Details</div>
+                                @if (!string.IsNullOrEmpty(h.OnBehalfOfAdminId))
+                                {
+                                    <small class="text-warning"><i class="bi bi-shield-lock"></i> via Remote-Zugriff durch @(Model.ActorName(h.OnBehalfOfAdminId))</small>
+                                }
+                            </td>
+                            <td>
+                                @if (fromContact)
+                                {
+                                    <a class="text-decoration-none" href="/Customers/@h.SourceContactId?tab=historie">
+                                        <i class="bi bi-person-vcard"></i> @h.SourceLabel
+                                    </a>
+                                }
+                                else
+                                {
+                                    <span class="text-muted"><i class="bi bi-building"></i> @h.SourceLabel</span>
+                                }
+                            </td>
+                            <td><i class="bi bi-person-circle text-muted me-1"></i>@Model.ActorName(h.ActorUserId)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+            <div class="small text-muted">@Model.History.Count Eintrag/Einträge</div>
+        }
+        break;
+
+    case "dateien":
+        <form method="post" asp-page-handler="UploadLibrary" enctype="multipart/form-data" class="row g-2 mb-4" style="max-width: 700px;">
+            <div class="col-md-9">
+                <input class="form-control" type="file" name="UploadFile" required />
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100"><i class="bi bi-upload"></i> Hochladen</button>
+            </div>
+            <div class="form-text">Max. 25 MB pro Datei.</div>
+        </form>
+
+        @if (Model.LibraryFiles.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="bi bi-paperclip"></i>
+                <p class="mt-2 mb-0 text-muted">Noch keine Dateien hinterlegt.</p>
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover align-middle" style="max-width: 900px;">
+                <thead><tr><th>Datei</th><th>Größe</th><th>Hochgeladen</th><th class="text-end">Aktionen</th></tr></thead>
+                <tbody>
+                    @foreach (var f in Model.LibraryFiles)
+                    {
+                        <tr>
+                            <td>
+                                <a href="/files/@f.Id" target="_blank" class="text-decoration-none text-reset">
+                                    <i class="bi bi-file-earmark text-muted me-1"></i><strong>@f.FileName</strong>
+                                </a>
+                            </td>
+                            <td class="text-muted">@(f.SizeBytes < 1024 ? $"{f.SizeBytes} B" : f.SizeBytes < 1024*1024 ? $"{f.SizeBytes/1024.0:F1} KB" : $"{f.SizeBytes/1024.0/1024.0:F1} MB")</td>
+                            <td class="text-muted">@f.UploadedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")</td>
+                            <td class="text-end">
+                                <a class="btn btn-sm btn-outline-secondary" href="/files/@f.Id" target="_blank"><i class="bi bi-download"></i></a>
+                                <form method="post" asp-page-handler="DeleteLibraryFile" asp-route-fileId="@f.Id" class="d-inline"
+                                      onsubmit="return confirm('Datei wirklich löschen?');">
+                                    <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                                </form>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        break;
+
+    case "kontakte":
+        @if (c.Contacts.Count == 0)
+        {
+            <div class="empty-state">
+                <i class="bi bi-person-vcard"></i>
+                <p class="mt-2 mb-0 text-muted">Noch keine Kontakte mit dieser Firma verknüpft.</p>
+                <a class="btn btn-primary btn-sm mt-3" href="/Customers/Create"><i class="bi bi-plus-lg"></i> Kontakt anlegen</a>
+            </div>
+        }
+        else
+        {
+            <table class="table table-hover align-middle" style="max-width: 900px;">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>E-Mail</th>
+                        <th>Telefon</th>
+                        <th>PLZ / Ort</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var contact in c.Contacts.OrderBy(x => x.Name))
+                    {
+                        <tr>
+                            <td><a class="text-decoration-none text-reset" href="/Customers/@contact.Id"><strong>@contact.Name</strong></a></td>
+                            <td>@if (!string.IsNullOrEmpty(contact.Email)) { <span><i class="bi bi-envelope text-muted me-1"></i>@contact.Email</span> }</td>
+                            <td>@if (!string.IsNullOrEmpty(contact.Phone)) { <span><i class="bi bi-telephone text-muted me-1"></i>@contact.Phone</span> }</td>
+                            <td>@if (!string.IsNullOrEmpty(contact.LocationLine)) { <span><i class="bi bi-geo-alt text-muted me-1"></i>@contact.LocationLine</span> }</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        break;
+
+    default:
+        <form method="post" asp-page-handler="Save" class="row g-3" style="max-width: 800px;">
+            <div class="col-md-12">
+                <label class="form-label">Name *</label>
+                <input class="form-control" asp-for="Input.Name" required />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">E-Mail</label>
+                <input class="form-control" asp-for="Input.Email" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Telefon</label>
+                <input class="form-control" asp-for="Input.Phone" />
+            </div>
+            <div class="col-md-8">
+                <label class="form-label">Straße</label>
+                <input class="form-control" asp-for="Input.Street" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">PLZ</label>
+                <input class="form-control" asp-for="Input.PostalCode" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Ort</label>
+                <input class="form-control" asp-for="Input.City" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Land</label>
+                <input class="form-control" asp-for="Input.Country" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Beschreibung</label>
+                <textarea class="form-control" rows="3" asp-for="Input.Description"></textarea>
+            </div>
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+                <button type="submit" formaction="?handler=Delete" class="btn btn-outline-danger ms-auto"
+                        onclick="return confirm('Diese Firma wirklich löschen? Kontakte werden entkoppelt (nicht gelöscht).');">
+                    <i class="bi bi-trash"></i> Löschen
+                </button>
+            </div>
+        </form>
+        break;
+}
+</div>
+
+@functions {
+    static string TagBg(string color) => color.Length >= 7 ? color[..7] + "1a" : "#eaecef";
+
+    static (string icon, string css) ActionStyle(string action) => action switch
+    {
+        "Created"        => ("bi-plus-circle", "act-created"),
+        "Updated"        => ("bi-pencil", "act-updated"),
+        "Note"           => ("bi-chat-dots", "act-note"),
+        "Task Completed" => ("bi-check-circle-fill", "act-created"),
+        _                => ("bi-arrow-right-circle", "act-default")
+    };
+}

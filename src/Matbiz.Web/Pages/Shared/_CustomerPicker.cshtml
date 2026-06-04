@@ -1,0 +1,53 @@
+@model CustomerPickerVm
+@*
+    Reusable customer picker. Renders:
+      - a read-only label + "Wählen" / "Entfernen" buttons
+      - a hidden input (named via Model.InputName) holding the selected Guid
+      - a native <dialog> with a search input that htmx-loads /Customers/Picker
+
+    Multiple instances per page would collide on the dialog id — for now we
+    assume one picker per form (Tasks/Edit), but the dialog id is parameterised
+    so we can extend later.
+*@
+
+<input type="hidden" id="@(Model.InputName.Replace('.', '-'))-id" name="@Model.InputName" value="@Model.SelectedId" />
+
+<div class="customer-picker-display">
+    <i class="bi bi-person-vcard text-muted"></i>
+    <span id="@(Model.InputName.Replace('.', '-'))-label" class="flex-grow-1">
+        @(string.IsNullOrEmpty(Model.SelectedLabel) ? "— Kein Kunde verknüpft —" : Model.SelectedLabel)
+    </span>
+    <button type="button" class="btn btn-sm btn-outline-secondary"
+            onclick="customerPicker.open('@Model.DialogId', '@Model.InputName')">
+        <i class="bi bi-search"></i> @(string.IsNullOrEmpty(Model.SelectedLabel) ? "Auswählen" : "Ändern")
+    </button>
+    @if (!string.IsNullOrEmpty(Model.SelectedLabel))
+    {
+        <button type="button" class="btn btn-sm btn-outline-secondary"
+                onclick="customerPicker.clear('@Model.InputName')"
+                title="Verknüpfung entfernen">
+            <i class="bi bi-x"></i>
+        </button>
+    }
+</div>
+
+<dialog id="@Model.DialogId" class="customer-picker-dialog"
+        onclick="if (event.target === this) this.close()">
+    <div class="picker-header">
+        <h5 class="mb-0"><i class="bi bi-person-vcard me-2"></i>Kunde wählen</h5>
+        <button type="button" class="btn-close" onclick="this.closest('dialog').close()"></button>
+    </div>
+    <div class="picker-search position-relative">
+        <i class="bi bi-search position-absolute" style="left: 0.85rem; top: 0.7rem; color: var(--text-muted);"></i>
+        <input id="@(Model.DialogId)-search" class="form-control ps-5" placeholder="Name, Firma oder E-Mail…"
+               name="q" autocomplete="off"
+               hx-get="/Customers/Picker"
+               hx-trigger="input changed delay:200ms, load"
+               hx-target="#@(Model.DialogId)-results"
+               hx-swap="innerHTML" />
+    </div>
+    <div id="@(Model.DialogId)-results" class="picker-results"></div>
+    <div class="picker-footer">
+        <button type="button" class="btn btn-secondary" onclick="this.closest('dialog').close()">Abbrechen</button>
+    </div>
+</dialog>

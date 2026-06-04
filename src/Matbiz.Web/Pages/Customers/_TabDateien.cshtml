@@ -1,0 +1,83 @@
+@model Matbiz.Web.Pages.Customers.DetailModel
+
+<form method="post" asp-page-handler="UploadLibrary" enctype="multipart/form-data" class="row g-2 mb-4" style="max-width: 700px;">
+    <div class="col-md-9">
+        <input class="form-control" type="file" name="UploadFile" required />
+    </div>
+    <div class="col-md-3">
+        <button class="btn btn-primary w-100"><i class="bi bi-upload"></i> Hochladen</button>
+    </div>
+    <div class="form-text">Max. 25 MB pro Datei.</div>
+</form>
+
+@if (Model.LibraryFiles.Count == 0)
+{
+    <div class="empty-state">
+        <i class="bi bi-paperclip"></i>
+        <p class="mt-2 mb-0 text-muted">Noch keine Dateien hinterlegt.</p>
+    </div>
+}
+else
+{
+    <table class="table table-hover align-middle" style="max-width: 900px;">
+        <thead>
+            <tr>
+                <th>Datei</th>
+                <th>Größe</th>
+                <th>Hochgeladen</th>
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var f in Model.LibraryFiles)
+            {
+                <tr>
+                    <td>
+                        <a href="/files/@f.Id" target="_blank" class="text-decoration-none text-reset">
+                            <i class="bi @IconFor(f.ContentType) text-muted me-1"></i><strong>@f.FileName</strong>
+                        </a>
+                    </td>
+                    <td class="text-muted">@HumanSize(f.SizeBytes)</td>
+                    <td class="text-muted">
+                        @f.UploadedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")
+                        @if (!string.IsNullOrEmpty(f.UploadedByUserId) && Model.UsersById.TryGetValue(f.UploadedByUserId, out var u))
+                        {
+                            <span class="small">— @(u.DisplayName ?? u.Email)</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" href="/files/@f.Id" target="_blank" title="Öffnen / Herunterladen">
+                            <i class="bi bi-download"></i>
+                        </a>
+                        <form method="post" asp-page-handler="DeleteLibraryFile" asp-route-fileId="@f.Id" class="d-inline"
+                              onsubmit="return confirm('Datei „@f.FileName\" wirklich löschen?');">
+                            <button class="btn btn-sm btn-outline-danger" title="Löschen"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@functions {
+    static string HumanSize(long bytes) =>
+        bytes switch
+        {
+            < 1024L => $"{bytes} B",
+            < 1024L * 1024L => $"{bytes / 1024.0:F1} KB",
+            < 1024L * 1024L * 1024L => $"{bytes / 1024.0 / 1024.0:F1} MB",
+            _ => $"{bytes / 1024.0 / 1024.0 / 1024.0:F2} GB"
+        };
+
+    static string IconFor(string ct) => ct switch
+    {
+        var s when s.StartsWith("image/") => "bi-file-image",
+        var s when s.Contains("pdf") => "bi-file-pdf",
+        var s when s.Contains("zip") || s.Contains("compressed") => "bi-file-zip",
+        var s when s.Contains("word") || s.Contains("officedocument.wordprocessing") => "bi-file-word",
+        var s when s.Contains("sheet") || s.Contains("excel") => "bi-file-excel",
+        var s when s.StartsWith("text/") => "bi-file-text",
+        _ => "bi-file-earmark"
+    };
+}

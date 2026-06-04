@@ -1,0 +1,78 @@
+@model Matbiz.Web.Pages.Customers.DetailModel
+@{ var c = Model.Customer!; }
+
+<form method="post" asp-page-handler="Stammdaten" class="row g-3" style="max-width: 800px;">
+    <input type="hidden" name="StammDraft.Id" value="@c.Id" />
+    <div class="col-md-6">
+        <label class="form-label">Name *</label>
+        <input class="form-control" name="StammDraft.Name" value="@c.Name" required />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Firma</label>
+        <partial name="_EntityPicker" model="@(new EntityPickerVm(
+            DialogId: "stamm-company-picker",
+            InputName: "StammDraft.CompanyId",
+            SelectedId: c.CompanyId,
+            SelectedLabel: c.Company?.Name,
+            SearchUrl: "/Companies/Picker",
+            EmptyText: "— Keine Firma verknüpft —",
+            DialogTitle: "Firma wählen",
+            PlaceholderText: "Name, Ort oder E-Mail…",
+            IconClass: "bi-building"))" />
+        <input class="form-control mt-2" id="stamm-companyname" name="StammDraft.CompanyName"
+               value="@c.CompanyName" placeholder="…oder Firmenname als Freitext"
+               style="display: @(c.CompanyId is not null ? "none" : "block");" />
+        <div class="form-text">
+            Wähle eine <a href="/Companies">strukturierte Firma</a> oder gib einen Freitext-Namen ein.
+        </div>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">E-Mail</label>
+        <input class="form-control" name="StammDraft.Email" value="@c.Email" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Telefon</label>
+        <input class="form-control" name="StammDraft.Phone" value="@c.Phone" />
+    </div>
+    <div class="col-md-8">
+        <label class="form-label">Straße</label>
+        <input class="form-control" name="StammDraft.Street" value="@c.Street" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">PLZ</label>
+        <input class="form-control" name="StammDraft.PostalCode" value="@c.PostalCode" />
+    </div>
+    <div class="col-md-2">
+        <label class="form-label">Ort</label>
+        <input class="form-control" name="StammDraft.City" value="@c.City" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Land</label>
+        <input class="form-control" name="StammDraft.Country" value="@c.Country" />
+    </div>
+    <div class="col-12">
+        <label class="form-label">Notizen</label>
+        <textarea class="form-control" rows="3" name="StammDraft.Notes">@c.Notes</textarea>
+    </div>
+    <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <button type="submit" formaction="?handler=Delete" class="btn btn-outline-danger ms-auto"
+                onclick="return confirm('Diesen Kontakt wirklich löschen?');">
+            <i class="bi bi-trash"></i> Löschen
+        </button>
+    </div>
+</form>
+
+<script>
+    // When the user picks (or clears) a company, hide / show the freetext fallback.
+    (function () {
+        var hidden = document.getElementById('StammDraft-CompanyId-id');
+        var freetext = document.getElementById('stamm-companyname');
+        if (!hidden || !freetext) return;
+        hidden.addEventListener('change', function () {
+            var hasLink = !!hidden.value;
+            freetext.style.display = hasLink ? 'none' : 'block';
+            if (hasLink) freetext.value = '';
+        });
+    })();
+</script>

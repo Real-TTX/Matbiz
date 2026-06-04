@@ -1,0 +1,104 @@
+@page
+@model Matbiz.Web.Pages.Customers.Groups.IndexModel
+@{ ViewData["Title"] = "Kontaktgruppen"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Kontaktgruppen</h1>
+    <partial name="_ColumnConfigDropdown" model="@(new ColumnConfigVm(Model.Columns))" />
+    <button type="button" class="btn btn-primary ms-2"
+            onclick="document.getElementById('create-form').classList.toggle('d-none')">
+        <i class="bi bi-plus-lg"></i> Neue Gruppe
+    </button>
+</div>
+
+<form id="create-form" method="post" asp-page-handler="Create" class="border rounded p-3 mb-4 bg-light @(Model.ShowCreate ? "" : "d-none")">
+    <div class="row g-3">
+        <div class="col-md-4">
+            <label class="form-label">Name *</label>
+            <input class="form-control" asp-for="Draft.Name" required />
+            <span asp-validation-for="Draft.Name" class="text-danger small"></span>
+        </div>
+        <div class="col-md-5">
+            <label class="form-label">Beschreibung</label>
+            <input class="form-control" asp-for="Draft.Description" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Typ</label>
+            <select class="form-select" asp-for="Draft.Kind">
+                <option value="@CustomerGroupKind.Static">Statisch</option>
+                <option value="@CustomerGroupKind.Dynamic">Dynamisch (Regeln)</option>
+            </select>
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check2"></i> Anlegen</button>
+</form>
+
+@if (Model.Items.Count == 0)
+{
+    <div class="empty-state">
+        <i class="bi bi-collection"></i>
+        <p class="mt-2 mb-0 text-muted">Noch keine Kontaktgruppen.</p>
+    </div>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
+                {
+                    <th>@col.Label</th>
+                }
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var g in Model.Items)
+            {
+                var isDyn = g.Kind == CustomerGroupKind.Dynamic;
+                <tr>
+                    @foreach (var col in Model.Columns.All.Where(x => Model.Columns.Is(x.Key)))
+                    {
+                        <td>
+                            @switch (col.Key)
+                            {
+                                case "name":
+                                    <a class="text-decoration-none text-reset" href="/Customers/Groups/Detail/@g.Id">
+                                        <i class="bi @(isDyn ? "bi-funnel-fill text-info" : "bi-collection-fill text-muted") me-1"></i>
+                                        <strong>@g.Name</strong>
+                                    </a>
+                                    break;
+                                case "kind":
+                                    <span class="badge @(isDyn ? "bg-info-subtle text-info" : "bg-secondary-subtle text-secondary")">
+                                        @(isDyn ? "Dynamisch" : "Statisch")
+                                    </span>
+                                    break;
+                                case "description":
+                                    <span class="text-muted">@g.Description</span>
+                                    break;
+                                case "members":
+                                    @if (!isDyn)
+                                    {
+                                        <span class="text-muted"><i class="bi bi-person"></i> @g.Members.Count</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted small">(berechnet)</span>
+                                    }
+                                    break;
+                                case "updated":
+                                    <span class="text-muted small">@g.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                    break;
+                            }
+                        </td>
+                    }
+                    <td class="text-end">
+                        <a class="btn btn-outline-secondary btn-sm" title="Öffnen" href="/Customers/Groups/Detail/@g.Id">
+                            <i class="bi bi-folder2-open"></i>
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}

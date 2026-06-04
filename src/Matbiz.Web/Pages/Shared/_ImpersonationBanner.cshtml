@@ -1,0 +1,23 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor Http
+
+@{
+    var user = Http.HttpContext?.User;
+    if (user?.Identity?.IsAuthenticated == true && user.IsImpersonated())
+    {
+        var targetName = user.UserName();
+        var adminName = user.ImpersonatorName();
+        <div class="impersonation-banner">
+            <span class="bi bi-shield-lock me-2" aria-hidden="true"></span>
+            <strong>Remote Zugriff</strong>
+            <span class="mx-2">für Mitarbeiter</span>
+            <strong>@targetName</strong>
+            <span class="ms-2 text-muted">(Admin: @adminName)</span>
+
+            <form method="post" action="/impersonation/end" class="ms-auto d-inline">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="returnUrl" value="/Users" />
+                <button type="submit" class="btn btn-sm btn-light">Trennen</button>
+            </form>
+        </div>
+    }
+}

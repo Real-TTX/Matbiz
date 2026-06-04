@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms</value></resheader>
+  <data name="App.Title"><value>Matbiz</value></data>
+  <data name="Nav.Dashboard"><value>Dashboard</value></data>
+  <data name="Nav.Customers"><value>Kunden</value></data>
+  <data name="Nav.Tasks"><value>Aufgaben</value></data>
+  <data name="Nav.Users"><value>Benutzer</value></data>
+  <data name="Impersonation.Active"><value>Remote Zugriff für Mitarbeiter {0} aktiv</value></data>
+  <data name="Impersonation.Disconnect"><value>Trennen</value></data>
+</root>

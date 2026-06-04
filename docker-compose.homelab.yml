@@ -1,0 +1,69 @@
+# Matbiz — Homelab Deployment
+#
+# Verwendet das vorgebaute Image aus GHCR statt lokal zu bauen. Im Vergleich
+# zur Entwickler-Compose:
+#   - Image wird gezogen, nicht gebaut
+#   - Restart-Policy "always"
+#   - Healthchecks aktiv
+#   - Postgres ist nicht nach außen exponiert
+#
+# Voraussetzung: Kopiere .env.example → .env und passe Passwörter / Port an.
+# Start:        docker compose -f docker-compose.homelab.yml up -d
+# Update:       docker compose -f docker-compose.homelab.yml pull && \
+#               docker compose -f docker-compose.homelab.yml up -d
+
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: matbiz-db
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-matbiz}
+      POSTGRES_USER: ${POSTGRES_USER:-matbiz}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Password must be set in .env}
+    volumes:
+      - matbiz-pgdata:/var/lib/postgresql/data
+    # DB-Port bewusst NICHT veröffentlicht — Postgres ist nur intern erreichbar.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-matbiz} -d ${POSTGRES_DB:-matbiz}"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+
+  web:
+    image: ghcr.io/real-ttx/matbiz:${MATBIZ_IMAGE_TAG:-latest}
+    container_name: matbiz-web
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Production}
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=${POSTGRES_DB:-matbiz};Username=${POSTGRES_USER:-matbiz};Password=${POSTGRES_PASSWORD}"
+      Matbiz__SeedAdmin__Email: ${MATBIZ_ADMIN_EMAIL:?Admin email must be set}
+      Matbiz__SeedAdmin__Password: ${MATBIZ_ADMIN_PASSWORD:?Admin password must be set}
+      Matbiz__SeedSampleData: ${MATBIZ_SEED_SAMPLE_DATA:-false}
+    ports:
+      - "${MATBIZ_PORT:-8040}:8080"
+    volumes:
+      - matbiz-dpkeys:/root/.aspnet/DataProtection-Keys
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/Account/Login >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    # Beispiel-Labels für Traefik / Caddy-Docker-Proxy. Bei Bedarf einkommentieren
+    # und an deine Reverse-Proxy-Konvention anpassen.
+    #
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.matbiz.rule=Host(`matbiz.example.com`)"
+    #   - "traefik.http.routers.matbiz.entrypoints=websecure"
+    #   - "traefik.http.routers.matbiz.tls.certresolver=letsencrypt"
+    #   - "traefik.http.services.matbiz.loadbalancer.server.port=8080"
+
+volumes:
+  matbiz-pgdata:
+  matbiz-dpkeys:

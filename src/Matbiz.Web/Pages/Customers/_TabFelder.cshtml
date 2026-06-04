@@ -1,0 +1,95 @@
+@model Matbiz.Web.Pages.Customers.DetailModel
+@{ var c = Model.Customer!; }
+
+@if (Model.Definitions.Count == 0)
+{
+    <div class="alert alert-info">
+        Keine eigenen Felder definiert. <a href="/Customers/Fields">Felder anlegen →</a>
+    </div>
+}
+else
+{
+    @* "File"-Typ läuft über eigene Form pro Feld (multipart). Andere Typen
+       teilen sich die Sammel-Form unten. *@
+    var fileDefs = Model.Definitions.Where(d => d.Type == CustomFieldType.File).ToList();
+    var otherDefs = Model.Definitions.Where(d => d.Type != CustomFieldType.File).ToList();
+
+    @foreach (var def in fileDefs)
+    {
+        var current = c.CustomFieldValues.FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.Value;
+        var hasFile = Guid.TryParse(current, out var fileId) && Model.CustomFieldFiles.TryGetValue(fileId, out var file);
+        <div class="row g-3 mb-3" style="max-width: 800px;">
+            <div class="col-md-12">
+                <label class="form-label">@def.Label @(def.Required ? "*" : "")</label>
+                @if (hasFile && Guid.TryParse(current, out var fid) && Model.CustomFieldFiles.TryGetValue(fid, out var f))
+                {
+                    <div class="file-field">
+                        <a class="file-field-name" href="/files/@f.Id" target="_blank">
+                            <i class="bi bi-paperclip text-muted"></i> @f.FileName
+                        </a>
+                        <span class="file-field-actions">
+                            <a class="btn btn-sm btn-outline-secondary" href="/files/@f.Id" target="_blank" title="Anzeigen">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <form method="post" asp-page-handler="UploadCustomFieldFile" enctype="multipart/form-data" class="d-inline-flex align-items-center gap-1">
+                                <input type="hidden" name="CustomFieldDefId" value="@def.Id" />
+                                <label class="btn btn-sm btn-outline-secondary mb-0" title="Ersetzen">
+                                    <i class="bi bi-arrow-repeat"></i>
+                                    <input type="file" name="CustomFieldFile" hidden onchange="this.form.submit()" />
+                                </label>
+                            </form>
+                            <form method="post" asp-page-handler="DeleteCustomFieldFile" asp-route-fieldDefId="@def.Id" class="d-inline"
+                                  onsubmit="return confirm('Datei „@f.FileName\" wirklich entfernen?');">
+                                <button class="btn btn-sm btn-outline-danger" title="Löschen"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </span>
+                    </div>
+                }
+                else
+                {
+                    <form method="post" asp-page-handler="UploadCustomFieldFile" enctype="multipart/form-data" class="d-flex gap-2">
+                        <input type="hidden" name="CustomFieldDefId" value="@def.Id" />
+                        <input type="file" name="CustomFieldFile" class="form-control" required />
+                        <button class="btn btn-primary"><i class="bi bi-upload"></i> Hochladen</button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+
+    @if (otherDefs.Count > 0)
+    {
+        <form method="post" asp-page-handler="Felder" class="row g-3" style="max-width: 800px;">
+            @foreach (var def in otherDefs)
+            {
+                var current = c.CustomFieldValues.FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.Value;
+                <div class="col-md-6">
+                    <label class="form-label">@def.Label @(def.Required ? "*" : "")</label>
+                    @switch (def.Type)
+                    {
+                        case CustomFieldType.Boolean:
+                            <div class="form-check">
+                                <input type="checkbox" class="form-check-input" name="CustomValues[@def.Id]" value="true" @(current == "true" ? "checked" : "") />
+                            </div>
+                            break;
+                        case CustomFieldType.LongText:
+                            <textarea class="form-control" rows="3" name="CustomValues[@def.Id]">@current</textarea>
+                            break;
+                        case CustomFieldType.Number:
+                            <input type="number" class="form-control" name="CustomValues[@def.Id]" value="@current" />
+                            break;
+                        case CustomFieldType.Date:
+                            <input type="date" class="form-control" name="CustomValues[@def.Id]" value="@current" />
+                            break;
+                        default:
+                            <input class="form-control" name="CustomValues[@def.Id]" value="@current" />
+                            break;
+                    }
+                </div>
+            }
+            <div>
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+            </div>
+        </form>
+    }
+}

@@ -1,0 +1,29 @@
+@model Matbiz.Web.Pages.Customers.DetailModel
+@{ var c = Model.Customer!; }
+
+<div class="d-flex flex-wrap gap-3 align-items-center mb-3">
+    <form method="post" asp-page-handler="Note" enctype="multipart/form-data" class="d-flex gap-2 flex-grow-1 flex-wrap" style="max-width: 700px;">
+        <div class="input-group" style="flex: 1 1 300px;">
+            <span class="input-group-text"><i class="bi bi-chat-dots"></i></span>
+            <input class="form-control" placeholder="Notiz hinzufügen…" name="NewNote" />
+        </div>
+        <label class="btn btn-outline-secondary mb-0" title="Datei anhängen">
+            <i class="bi bi-paperclip"></i>
+            <input type="file" name="NoteFile" hidden onchange="this.parentElement.classList.add('btn-primary');this.parentElement.classList.remove('btn-outline-secondary');this.parentElement.title='Datei: ' + this.files[0].name;" />
+        </label>
+        <button class="btn btn-primary" type="submit"><i class="bi bi-plus-lg"></i> Notiz</button>
+    </form>
+
+    <div class="position-relative" style="max-width: 280px; flex: 0 0 280px;">
+        <i class="bi bi-search position-absolute" style="left: 0.75rem; top: 0.6rem; color: var(--text-muted);"></i>
+        <input class="form-control ps-5" placeholder="Historie durchsuchen…"
+               name="q" value="@Model.HistorySearch"
+               hx-get="/Customers/@Model.Id?handler=HistoryRows&tab=historie"
+               hx-include="this"
+               hx-trigger="input changed delay:200ms"
+               hx-target="#history-table"
+               hx-swap="outerHTML" />
+    </div>
+</div>
+
+@await Html.PartialAsync("_HistoryTable", Model)

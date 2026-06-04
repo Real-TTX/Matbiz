@@ -1,0 +1,41 @@
+@model List<Matbiz.Web.Modules.Customers.Models.Company>
+
+<div class="col-md-6">
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="mb-0"><i class="bi bi-building-add me-2"></i>Neue Firmen</h5>
+            <span class="text-muted small">@Model.Count Eintrag/Einträge</span>
+        </div>
+        @if (Model.Count == 0)
+        {
+            <p class="text-muted m-3">Noch keine Firmen angelegt.</p>
+        }
+        else
+        {
+            <ul class="dash-list">
+                @foreach (var c in Model)
+                {
+                    <li class="dash-row">
+                        <a class="dash-row-body" href="/Companies/@c.Id">
+                            <div><i class="bi bi-building text-muted me-1"></i><strong>@c.Name</strong></div>
+                            <div class="small text-muted d-flex flex-wrap gap-2 mt-1">
+                                <span><i class="bi bi-calendar3"></i> @c.CreatedAt.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                @if (!string.IsNullOrEmpty(c.LocationLine))
+                                {
+                                    <span><i class="bi bi-geo-alt"></i> @c.LocationLine</span>
+                                }
+                                @if (c.Contacts.Count > 0)
+                                {
+                                    <span><i class="bi bi-person"></i> @c.Contacts.Count Kontakt(e)</span>
+                                }
+                            </div>
+                        </a>
+                    </li>
+                }
+                <li class="dash-row dash-row-more">
+                    <a class="dash-show-all" href="/Companies">Alle anzeigen <i class="bi bi-arrow-right"></i></a>
+                </li>
+            </ul>
+        }
+    </div>
+</div>

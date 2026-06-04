@@ -1,0 +1,111 @@
+@page "/Teams/Detail/{Id:guid}"
+@model Matbiz.Web.Pages.Teams.DetailModel
+@{
+    ViewData["Title"] = Model.Team?.Name ?? "Team";
+    var team = Model.Team!;
+}
+
+<a class="btn btn-link mb-2 ps-0" href="/Teams"><i class="bi bi-arrow-left"></i> Zurück</a>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+
+<div class="d-flex align-items-start mb-3">
+    <div class="team-icon-lg"><i class="bi bi-people-fill"></i></div>
+    <div class="ms-3 flex-grow-1">
+        <h1 class="mb-0">@team.Name</h1>
+        @if (team.Department is not null)
+        {
+            <div class="text-muted small"><i class="bi bi-diagram-3"></i> @team.Department.Name</div>
+        }
+        @if (!string.IsNullOrEmpty(team.Description))
+        {
+            <div class="text-muted">@team.Description</div>
+        }
+    </div>
+    <form method="post" asp-page-handler="Delete" onsubmit="return confirm('Team wirklich löschen?');">
+        <button class="btn btn-outline-danger"><i class="bi bi-trash"></i> Team löschen</button>
+    </form>
+</div>
+
+<form method="post" asp-page-handler="Save" class="row g-3 mb-4" style="max-width: 700px;">
+    <div class="col-md-6">
+        <label class="form-label">Name *</label>
+        <input class="form-control" asp-for="Name" required />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Abteilung</label>
+        <select class="form-select" asp-for="DepartmentId">
+            <option value="">— Keine Abteilung —</option>
+            @foreach (var d in Model.AllDepartments)
+            {
+                <option value="@d.Id">@d.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-12">
+        <label class="form-label">Beschreibung</label>
+        <input class="form-control" asp-for="Description" />
+    </div>
+    <div class="col-12">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+    </div>
+</form>
+
+<h3 class="mt-4"><i class="bi bi-person-plus me-2"></i>Mitglieder</h3>
+
+<form method="post" asp-page-handler="AddMember" class="row g-3 mb-3" style="max-width: 600px;">
+    <div class="col-md-8">
+        <select class="form-select" asp-for="AddUserId">
+            <option value="">Mitglied hinzufügen…</option>
+            @foreach (var u in Model.AvailableUsers)
+            {
+                <option value="@u.Id">@(u.DisplayName ?? u.Email)</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-4">
+        <button class="btn btn-primary w-100" type="submit"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
+    </div>
+</form>
+
+@if (team.Members.Count == 0)
+{
+    <p class="text-muted">Noch keine Mitglieder.</p>
+}
+else
+{
+    <ul class="list-group" style="max-width: 600px;">
+        @foreach (var m in team.Members)
+        {
+            var u = Model.AllUsers.FirstOrDefault(x => x.Id == m.UserId);
+            <li class="list-group-item d-flex align-items-center">
+                <i class="bi bi-person-circle me-2 text-muted"></i>
+                <span>@(u?.DisplayName ?? u?.Email ?? m.UserId)</span>
+                <form method="post" asp-page-handler="RemoveMember" asp-route-userId="@m.UserId" class="ms-auto">
+                    <button class="btn btn-sm btn-outline-secondary" title="Entfernen"><i class="bi bi-x-lg"></i></button>
+                </form>
+            </li>
+        }
+    </ul>
+}
+
+<h3 class="mt-5"><i class="bi bi-check2-square me-2"></i>Team-Aufgaben</h3>
+@if (Model.TeamTasks.Count == 0)
+{
+    <p class="text-muted">Keine Aufgaben für dieses Team.</p>
+}
+else
+{
+    <ul class="list-group" style="max-width: 800px;">
+        @foreach (var t in Model.TeamTasks)
+        {
+            <li class="list-group-item d-flex align-items-center">
+                <a class="text-decoration-none text-reset me-auto" href="/Tasks/@t.Id">@t.Title</a>
+                <span class="badge bg-secondary">@t.Status</span>
+            </li>
+        }
+    </ul>
+}

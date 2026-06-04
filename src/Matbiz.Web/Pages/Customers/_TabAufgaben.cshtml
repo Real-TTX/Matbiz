@@ -1,0 +1,70 @@
+@model Matbiz.Web.Pages.Customers.DetailModel
+@using TaskStatus = Matbiz.Web.Modules.Tasks.Models.TaskStatus
+@{ var c = Model.Customer!; }
+
+<div class="mb-3 d-flex gap-2">
+    <a class="btn btn-primary btn-sm" href="/Tasks/Edit?customerId=@c.Id">
+        <i class="bi bi-plus-lg"></i> Aufgabe anlegen
+    </a>
+    <a class="btn btn-outline-secondary btn-sm" href="/Tasks">
+        <i class="bi bi-list-check"></i> Alle Aufgaben
+    </a>
+</div>
+
+@if (Model.Tasks.Count == 0)
+{
+    <div class="empty-state">
+        <i class="bi bi-clipboard-check"></i>
+        <p class="mt-2 mb-0 text-muted">Noch keine Aufgaben für diesen Kunden.</p>
+    </div>
+}
+else
+{
+    <ul class="task-list" style="max-width: 900px;">
+        @foreach (var t in Model.Tasks)
+        {
+            var overdue = t.Status != TaskStatus.Done && t.Status != TaskStatus.Cancelled
+                          && t.DueDate is DateTime d && d.Date < DateTime.UtcNow.Date;
+            <li class="task-item @(t.Status == TaskStatus.Done ? "done" : "") @(overdue ? "overdue" : "")">
+                <form method="post" action="/Tasks/Toggle?id=@t.Id&returnUrl=/Customers/@c.Id?tab=aufgaben" class="task-check">
+                    @Html.AntiForgeryToken()
+                    <input type="checkbox"
+                           hx-post="/Tasks/Toggle?id=@t.Id"
+                           hx-swap="none"
+                           @(t.Status == TaskStatus.Done ? "checked" : "") />
+                    <span class="check-mark"><i class="bi bi-check-lg"></i></span>
+                </form>
+
+                <div class="task-body">
+                    <a class="text-decoration-none text-reset" href="/Tasks/@t.Id">
+                        <div class="task-title">@t.Title</div>
+                        <div class="task-meta">
+                            @switch (t.Priority)
+                            {
+                                case TaskPriority.Urgent: <span class="meta-pill prio-urgent"><i class="bi bi-fire"></i> Dringend</span>; break;
+                                case TaskPriority.High:   <span class="meta-pill prio-high"><i class="bi bi-flag-fill"></i> Hoch</span>; break;
+                                case TaskPriority.Low:    <span class="meta-pill prio-low"><i class="bi bi-flag"></i> Niedrig</span>; break;
+                                default:                  <span class="meta-pill prio-normal"><i class="bi bi-flag"></i> Normal</span>; break;
+                            }
+                            @switch (t.Status)
+                            {
+                                case TaskStatus.InProgress: <span class="meta-pill status-progress"><i class="bi bi-arrow-repeat"></i> In Arbeit</span>; break;
+                                case TaskStatus.Done:       <span class="meta-pill status-done"><i class="bi bi-check-circle-fill"></i> Erledigt</span>; break;
+                                case TaskStatus.Cancelled:  <span class="meta-pill status-cancelled"><i class="bi bi-x-circle"></i> Abgebrochen</span>; break;
+                                default:                    <span class="meta-pill status-open"><i class="bi bi-circle"></i> Offen</span>; break;
+                            }
+                            @if (t.DueDate is DateTime due)
+                            {
+                                <span class="meta-pill @(overdue ? "text-danger" : "")">
+                                    <i class="bi bi-calendar3"></i> @due.ToLocalTime().ToString("dd.MM.yyyy")
+                                </span>
+                            }
+                        </div>
+                    </a>
+                </div>
+
+                <a class="btn btn-link text-muted" href="/Tasks/@t.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+            </li>
+        }
+    </ul>
+}

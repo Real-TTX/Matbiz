@@ -1,0 +1,52 @@
+@model DashPanelVm
+@using Matbiz.Web.Modules.Tasks.Models
+@using TaskStatus = Matbiz.Web.Modules.Tasks.Models.TaskStatus
+
+<div class="col-md-6">
+    <div class="panel">
+        <div class="panel-header">
+            <h5 class="mb-0"><i class="bi @Model.IconClass me-2"></i>@Model.Title</h5>
+            <span class="text-muted small">@Model.Items.Count Aufgabe(n)</span>
+        </div>
+        @if (Model.Items.Count == 0)
+        {
+            <p class="text-muted m-3">@Model.EmptyMessage</p>
+        }
+        else
+        {
+            <ul class="dash-list">
+                @foreach (var t in Model.Items)
+                {
+                    var overdue = t.DueDate is DateTime d && d.Date < Model.Today && t.Status != TaskStatus.Done;
+                    <li class="dash-row">
+                        <form method="post" action="/Tasks/Toggle?id=@t.Id&returnUrl=/" class="task-check sm">
+                            @Html.AntiForgeryToken()
+                            <input type="checkbox" name="_check"
+                                   hx-post="/Tasks/Toggle?id=@t.Id"
+                                   hx-swap="none"
+                                   @(t.Status == TaskStatus.Done ? "checked" : "") />
+                            <span class="check-mark"><i class="bi bi-check-lg"></i></span>
+                        </form>
+                        <a class="dash-row-body" href="/Tasks/@t.Id">
+                            <div>@t.Title</div>
+                            <div class="small text-muted d-flex flex-wrap gap-2 mt-1">
+                                @if (t.DueDate is DateTime due)
+                                {
+                                    <span class="@(overdue ? "text-danger" : "")"><i class="bi bi-calendar3"></i> @due.ToLocalTime().ToString("dd.MM.yyyy")</span>
+                                }
+                                @if (t.AssignedTeamId is not null)
+                                {
+                                    <span><i class="bi bi-people-fill"></i> Team</span>
+                                }
+                                @if (t.CustomerId is Guid cid && Model.CustomerNames.TryGetValue(cid, out var cname))
+                                {
+                                    <span><i class="bi bi-person-vcard"></i> @cname</span>
+                                }
+                            </div>
+                        </a>
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+</div>

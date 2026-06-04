@@ -1,0 +1,67 @@
+@model BrandingSettings
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor Http
+
+@{
+    var user = Http.HttpContext?.User;
+    var isAdmin = user?.IsInRole(Roles.Admin) ?? false;
+    var currentPath = Http.HttpContext?.Request.Path.Value ?? "/";
+    string ActiveIf(string startsWith) =>
+        currentPath.StartsWith(startsWith, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+
+    bool IsContactsActive() =>
+        currentPath.StartsWith("/Customers", StringComparison.OrdinalIgnoreCase)
+        && !currentPath.StartsWith("/Customers/Groups", StringComparison.OrdinalIgnoreCase)
+        && !currentPath.StartsWith("/Customers/Fields", StringComparison.OrdinalIgnoreCase);
+}
+
+<div class="brand">
+    @if (Model.LogoBytes is { Length: > 0 })
+    {
+        <img class="brand-logo" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" />
+    }
+    else
+    {
+        <span class="brand-name">@Model.AppName</span>
+    }
+</div>
+
+@if (user?.Identity?.IsAuthenticated == true)
+{
+    <nav class="nav-scrollable">
+        <div class="nav flex-column">
+            <div class="nav-item"><a class="nav-link @(currentPath == "/" ? "active" : "")" href="/"><i class="bi bi-speedometer2"></i> Dashboard</a></div>
+            <div class="nav-item"><a class="nav-link @(IsContactsActive() ? "active" : "")" href="/Customers"><i class="bi bi-person-vcard"></i> Kontakte</a></div>
+            <div class="nav-item"><a class="nav-link nav-sub @ActiveIf("/Customers/Groups")" href="/Customers/Groups"><i class="bi bi-collection"></i> Gruppen</a></div>
+            <div class="nav-item"><a class="nav-link @ActiveIf("/Companies")" href="/Companies"><i class="bi bi-building"></i> Firmen</a></div>
+            <div class="nav-item"><a class="nav-link @ActiveIf("/Tasks")" href="/Tasks"><i class="bi bi-check2-square"></i> Aufgaben</a></div>
+
+            @if (isAdmin)
+            {
+                <div class="nav-section">Administration</div>
+                <div class="nav-item"><a class="nav-link @ActiveIf("/Users")" href="/Users"><i class="bi bi-people"></i> Benutzer</a></div>
+                <div class="nav-item"><a class="nav-link @ActiveIf("/Departments")" href="/Departments"><i class="bi bi-diagram-3"></i> Abteilungen</a></div>
+                <div class="nav-item"><a class="nav-link @ActiveIf("/Teams")" href="/Teams"><i class="bi bi-people-fill"></i> Teams</a></div>
+                <div class="nav-item"><a class="nav-link @ActiveIf("/Customers/Fields")" href="/Customers/Fields"><i class="bi bi-sliders"></i> Kontaktfelder</a></div>
+                <div class="nav-section">System</div>
+                <div class="nav-item"><a class="nav-link @ActiveIf("/System")" href="/System/Appearance"><i class="bi bi-palette"></i> Aussehen</a></div>
+            }
+
+            <div class="nav-spacer"></div>
+            <div class="nav-item"><a class="nav-link" href="/Account/Manage"><i class="bi bi-person-circle"></i> @user.Identity?.Name</a></div>
+            <div class="nav-item">
+                <form method="post" action="/Account/Logout">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="nav-link nav-logout"><i class="bi bi-box-arrow-right"></i> Abmelden</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+}
+else
+{
+    <nav class="nav-scrollable">
+        <div class="nav flex-column">
+            <div class="nav-item"><a class="nav-link" href="/Account/Login"><i class="bi bi-box-arrow-in-right"></i> Anmelden</a></div>
+        </div>
+    </nav>
+}
