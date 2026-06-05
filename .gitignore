@@ -7,4 +7,6 @@ obj/
 *.suo
 .env
 src/Matbiz.Web/Data/app.db
-src/Matbiz.Web/Data/Migrations/*.designer.cs
+# EF Migration Designer-Files MÜSSEN getrackt werden — sie enthalten den
+# Model-Snapshot pro Migration. Ohne sie findet EF die Migrationen nicht
+# und das Image hat zwar den Migration-Cs-Stub aber keine ausführbaren Migrations.
