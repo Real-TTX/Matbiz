@@ -5,6 +5,15 @@
 <h1>Admin-Dashboard</h1>
 <p class="text-muted">Überblick über die Systemkonfiguration und Schnellzugriff auf alle Admin-Bereiche.</p>
 
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+@if (TempData["StatusError"] is string err)
+{
+    <div class="alert alert-warning py-2"><i class="bi bi-exclamation-triangle"></i> @err</div>
+}
+
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <a class="stat-card" href="/Users">
@@ -64,5 +73,23 @@
                 <li class="dash-row"><a class="dash-row-body" href="/System/Appearance"><strong>Aussehen</strong><div class="small text-muted">App-Name, Farben, Logo</div></a></li>
             </ul>
         </div>
+    </div>
+</div>
+
+<div class="panel mt-4">
+    <div class="panel-header"><h5 class="mb-0"><i class="bi bi-database-add me-2"></i>Demo-Daten</h5></div>
+    <div class="p-3">
+        <p class="small text-muted mb-3">
+            Lädt Beispiel-Datensätze für alle Module: Kontakte, Firmen, Tags, Gruppen, Aufgaben,
+            Artikel, Belege (Angebot/Auftrag/Rechnung), Lagerbestände + Wareneingänge,
+            Wiki-Seiten und Custom-Menü-Beispiele. <strong>Idempotent</strong> — Tabellen mit
+            existierenden Daten werden übersprungen, vorhandene Datensätze nicht überschrieben.
+        </p>
+        <form method="post" asp-page-handler="SeedDemoData"
+              onsubmit="this.querySelector('button').disabled=true;this.querySelector('button').innerHTML='<i class=&quot;bi bi-hourglass-split&quot;></i> Lädt…';return true;">
+            <button type="submit" class="btn btn-primary">
+                <i class="bi bi-database-add"></i> Demo-Daten laden
+            </button>
+        </form>
     </div>
 </div>

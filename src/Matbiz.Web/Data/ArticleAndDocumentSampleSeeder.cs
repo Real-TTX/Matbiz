@@ -13,9 +13,9 @@ namespace Matbiz.Web.Data;
 /// </summary>
 public static class ArticleAndDocumentSampleSeeder
 {
-    public static async Task SeedAsync(IServiceProvider sp, IConfiguration cfg, ILogger logger, CancellationToken ct = default)
+    public static async Task SeedAsync(IServiceProvider sp, IConfiguration cfg, ILogger logger, CancellationToken ct = default, bool force = false)
     {
-        if (!cfg.GetValue<bool>("Matbiz:SeedSampleData")) return;
+        if (!force && !cfg.GetValue<bool>("Matbiz:SeedSampleData")) return;
 
         var db = sp.GetRequiredService<ApplicationDbContext>();
         if (await db.Articles.AnyAsync(ct))
