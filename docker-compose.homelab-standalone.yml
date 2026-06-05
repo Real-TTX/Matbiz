@@ -1,0 +1,90 @@
+# Matbiz — Homelab Standalone
+#
+# Einzelne Compose-Datei, alles inline — keine .env nötig.
+# Drop-in für dein Homelab. Werte sind Zufallsangaben — UNBEDINGT anpassen:
+#   • POSTGRES_PASSWORD
+#   • Matbiz__SeedAdmin__Email + Password
+#   • Externer Port (Default 8040)
+#   • Image-Tag (Default :latest)
+#
+# Start:    docker compose -f docker-compose.homelab-standalone.yml up -d
+# Update:   docker compose -f docker-compose.homelab-standalone.yml pull && \
+#           docker compose -f docker-compose.homelab-standalone.yml up -d
+# Logs:     docker compose -f docker-compose.homelab-standalone.yml logs -f web
+# Stop:     docker compose -f docker-compose.homelab-standalone.yml down
+
+services:
+
+  db:
+    image: postgres:17-alpine
+    container_name: matbiz-db
+    restart: always
+    environment:
+      POSTGRES_DB: matbiz
+      POSTGRES_USER: matbiz
+      POSTGRES_PASSWORD: hX9k2qPj4mNbR7vT3wZ8sLcF6yE1uA5d
+    volumes:
+      - matbiz-pgdata:/var/lib/postgresql/data
+    # DB-Port absichtlich NICHT exponiert — nur intern erreichbar.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U matbiz -d matbiz"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+    networks:
+      - matbiz-net
+
+  web:
+    image: ghcr.io/real-ttx/matbiz:latest
+    container_name: matbiz-web
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+
+      # Verbindungs-String — Passwort muss zu POSTGRES_PASSWORD oben passen
+      ConnectionStrings__DefaultConnection: "Host=db;Port=5432;Database=matbiz;Username=matbiz;Password=hX9k2qPj4mNbR7vT3wZ8sLcF6yE1uA5d"
+
+      # Initial-Admin (wird beim ersten Start angelegt, später in der UI änderbar)
+      Matbiz__SeedAdmin__Email: admin@matbiz.home
+      Matbiz__SeedAdmin__Password: Wechsel-Mich-Bitte-2026!
+
+      # Demo-Daten beim ersten Start anlegen? Für Produktion auf "false".
+      Matbiz__SeedSampleData: "false"
+
+    ports:
+      # Linke Seite = externer Port (Host), rechte = interner Container-Port (8080 lassen)
+      - "8040:8080"
+
+    volumes:
+      # Persistente Data-Protection-Keys — sonst werden alle Session-Cookies
+      # bei jedem Container-Restart invalidiert.
+      - matbiz-dpkeys:/root/.aspnet/DataProtection-Keys
+
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:8080/Account/Login >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+    networks:
+      - matbiz-net
+
+    # --- Optional: Traefik-Labels (auskommentiert) ---
+    # labels:
+    #   - "traefik.enable=true"
+    #   - "traefik.http.routers.matbiz.rule=Host(`matbiz.example.com`)"
+    #   - "traefik.http.routers.matbiz.entrypoints=websecure"
+    #   - "traefik.http.routers.matbiz.tls.certresolver=letsencrypt"
+    #   - "traefik.http.services.matbiz.loadbalancer.server.port=8080"
+
+volumes:
+  matbiz-pgdata:
+  matbiz-dpkeys:
+
+networks:
+  matbiz-net:
+    driver: bridge
