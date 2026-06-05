@@ -1,0 +1,69 @@
+@model BrandingSettings
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor Http
+@{
+    var currentPath = Http.HttpContext?.Request.Path.Value ?? "/";
+    string ActiveIf(string startsWith) =>
+        currentPath.StartsWith(startsWith, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+}
+
+<div class="brand">
+    @if (Model.LogoBytes is { Length: > 0 })
+    {
+        var hasDarkLogo = Model.LogoDarkBytes is { Length: > 0 };
+        var invertCls = Model.LogoInvertMode switch {
+            "Always"   => " logo-invert-always",
+            "DarkOnly" => " logo-invert-dark",
+            _          => ""
+        };
+        var style = $"height: {Model.LogoHeightPx}px; max-height: {Model.LogoHeightPx}px;";
+        if (hasDarkLogo)
+        {
+            <img class="brand-logo brand-logo-light" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" style="@style" />
+            <img class="brand-logo brand-logo-dark"  src="/branding/logo/dark?v=@Model.Version" alt="@Model.AppName" style="@style" />
+        }
+        else
+        {
+            <img class="brand-logo@(invertCls)" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" style="@style" />
+        }
+        @if (Model.ShowAppNameUnderLogo)
+        {
+            <span class="brand-name brand-name-under">@Model.AppName</span>
+        }
+    }
+    else
+    {
+        <span class="brand-name">@Model.AppName</span>
+    }
+</div>
+
+<nav class="nav-scrollable">
+    <div class="nav flex-column">
+        <div class="nav-item">
+            <a class="nav-link @(currentPath.Equals("/Admin", StringComparison.OrdinalIgnoreCase) || currentPath.Equals("/Admin/", StringComparison.OrdinalIgnoreCase) ? "active" : "")" href="/Admin">
+                <i class="bi bi-speedometer2"></i> Admin-Dashboard
+            </a>
+        </div>
+
+        <div class="nav-section">Benutzer & Organisation</div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Users")" href="/Users"><i class="bi bi-people"></i> Benutzer</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Departments")" href="/Departments"><i class="bi bi-diagram-3"></i> Abteilungen</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Teams")" href="/Teams"><i class="bi bi-people-fill"></i> Teams</a></div>
+
+        <div class="nav-section">Konfiguration</div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Customers/Fields")" href="/Customers/Fields"><i class="bi bi-sliders"></i> Kontaktfelder</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Admin/ArticleFields")" href="/Admin/ArticleFields"><i class="bi bi-sliders"></i> Artikelfelder</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Admin/Menu")" href="/Admin/Menu"><i class="bi bi-list-ul"></i> Menü-Einträge</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Admin/TaxRates")" href="/Admin/TaxRates"><i class="bi bi-percent"></i> Steuersätze</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Admin/NumberRanges")" href="/Admin/NumberRanges"><i class="bi bi-123"></i> Nummernkreise</a></div>
+
+        <div class="nav-section">System</div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Admin/Modules")" href="/Admin/Modules"><i class="bi bi-puzzle"></i> Module</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/Admin/NavLayout")" href="/Admin/NavLayout"><i class="bi bi-layout-sidebar"></i> Menü-Layout</a></div>
+        <div class="nav-item"><a class="nav-link @ActiveIf("/System")" href="/System/Appearance"><i class="bi bi-palette"></i> Aussehen</a></div>
+
+        <div class="nav-spacer"></div>
+        <div class="nav-item">
+            <a class="nav-link" href="/"><i class="bi bi-arrow-return-left"></i> Zurück zur App</a>
+        </div>
+    </div>
+</nav>

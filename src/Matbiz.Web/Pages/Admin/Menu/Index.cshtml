@@ -1,0 +1,111 @@
+@page
+@model Matbiz.Web.Pages.Admin.Menu.IndexModel
+@using Matbiz.Web.Modules.CustomMenu.Models
+@{ ViewData["Title"] = "Menü-Einträge"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Menü-Einträge</h1>
+    <a class="btn btn-primary" href="/Admin/Menu/Edit?context=@Model.Tab"><i class="bi bi-plus-lg"></i> Neuer Eintrag</a>
+</div>
+
+<p class="text-muted">
+    Eigene Links — als Sidebar-Eintrag, oder als zusätzlicher Tab auf Kontakt- bzw. Firmen-Detail mit
+    URL-Platzhaltern wie <code>{Phone}</code>, <code>{FirstName}</code>, <code>{CompanyName}</code>.
+</p>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(Model.Tab == "sidebar" ? "active" : "")" href="/Admin/Menu?Tab=sidebar">
+            <i class="bi bi-list-ul"></i> Sidebar
+            <span class="badge bg-secondary-subtle text-secondary ms-1">@Model.SidebarItems.Count</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.Tab == "contact" ? "active" : "")" href="/Admin/Menu?Tab=contact">
+            <i class="bi bi-person-vcard"></i> Kontakt-Tabs
+            <span class="badge bg-secondary-subtle text-secondary ms-1">@Model.ContactItems.Count</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.Tab == "company" ? "active" : "")" href="/Admin/Menu?Tab=company">
+            <i class="bi bi-building"></i> Firmen-Tabs
+            <span class="badge bg-secondary-subtle text-secondary ms-1">@Model.CompanyItems.Count</span>
+        </a>
+    </li>
+</ul>
+
+@{
+    var items = Model.Tab switch
+    {
+        "contact" => Model.ContactItems,
+        "company" => Model.CompanyItems,
+        _ => Model.SidebarItems
+    };
+}
+
+@if (items.Count == 0)
+{
+    <div class="empty-list-hint">Keine Daten</div>
+}
+else
+{
+    <ul class="menu-item-list" id="menu-item-list" data-tab="@Model.Tab">
+        @foreach (var i in items)
+        {
+            <li class="menu-item-row" data-id="@i.Id">
+                <span class="menu-item-handle" title="Ziehen zum Sortieren"><i class="bi bi-grip-vertical"></i></span>
+                <span class="menu-item-icon"><i class="bi @(string.IsNullOrEmpty(i.IconClass) ? "bi-box-arrow-up-right" : i.IconClass)"></i></span>
+                <div class="menu-item-body">
+                    <div class="menu-item-title">
+                        <a class="text-decoration-none text-reset" href="/Admin/Menu/Edit/@i.Id">@i.Label</a>
+                    </div>
+                    <div class="menu-item-meta small text-muted text-truncate">@i.Url</div>
+                </div>
+                <div class="menu-item-badges">
+                    <span class="badge bg-secondary-subtle text-secondary" title="Öffnen-Modus">
+                        <i class="bi @(i.OpenMode == CustomMenuOpenMode.Embedded ? "bi-window-stack" : i.OpenMode == CustomMenuOpenMode.NewTab ? "bi-arrow-up-right" : "bi-arrow-right")"></i>
+                        @Matbiz.Web.Pages.Admin.Menu.IndexModel.OpenModeLabel(i.OpenMode)
+                    </span>
+                    <span class="badge bg-info-subtle text-info" title="Sichtbarkeit">
+                        <i class="bi @(i.Visibility == CustomMenuVisibility.Global ? "bi-globe" : "bi-shield")"></i>
+                        @Matbiz.Web.Pages.Admin.Menu.IndexModel.VisibilityLabel(i.Visibility)
+                    </span>
+                </div>
+                <div class="menu-item-actions">
+                    <a class="btn btn-sm btn-outline-secondary" href="/Admin/Menu/Edit/@i.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                    <form method="post" asp-page-handler="Delete" asp-route-id="@i.Id" class="d-inline"
+                          onsubmit="return confirm('Eintrag „@i.Label\" wirklich löschen?');">
+                        <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                    </form>
+                </div>
+            </li>
+        }
+    </ul>
+}
+
+@section Scripts {
+    <script>
+        (function () {
+            var list = document.getElementById('menu-item-list');
+            if (!list || typeof Sortable === 'undefined') return;
+            Sortable.create(list, {
+                handle: '.menu-item-handle',
+                animation: 150,
+                ghostClass: 'menu-item-ghost',
+                chosenClass: 'menu-item-chosen',
+                onEnd: function () {
+                    var ids = Array.from(list.querySelectorAll('.menu-item-row')).map(function (r) { return r.dataset.id; });
+                    var token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+                    fetch('/Admin/Menu?handler=Reorder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'RequestVerificationToken': token || ''
+                        },
+                        body: JSON.stringify({ ids: ids })
+                    });
+                }
+            });
+        })();
+    </script>
+}

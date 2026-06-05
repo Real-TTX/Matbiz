@@ -1,5 +1,5 @@
-using Matbiz.Web.Modules.Customers.Models;
-using Matbiz.Web.Modules.Customers.Services;
+using Matbiz.Web.Modules.CustomFields.Models;
+using Matbiz.Web.Modules.CustomFields.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
@@ -7,29 +7,31 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 namespace Matbiz.Web.Pages.Customers;
 
 [Authorize(Roles = "Admin")]
-public class FieldsModel(CustomerFieldService fields) : PageModel
+public class FieldsModel(CustomFieldService fields) : PageModel
 {
-    public List<CustomerFieldDefinition> Items { get; private set; } = new();
+    private const CustomFieldEntityType Et = CustomFieldEntityType.Contact;
 
-    [BindProperty] public CustomerFieldDefinition Draft { get; set; } = new();
+    public List<CustomFieldDefinition> Items { get; private set; } = new();
+    public List<CustomFieldSection> Sections { get; private set; } = new();
 
-    public async Task OnGetAsync() => Items = await fields.ListAsync();
+    [BindProperty(SupportsGet = true)] public string Tab { get; set; } = "felder";
 
-    public async Task<IActionResult> OnPostAddAsync()
+    public async Task OnGetAsync()
     {
-        if (string.IsNullOrWhiteSpace(Draft.Key) || string.IsNullOrWhiteSpace(Draft.Label))
-        {
-            ModelState.AddModelError("", "Schlüssel und Bezeichnung sind Pflicht.");
-            Items = await fields.ListAsync();
-            return Page();
-        }
-        await fields.CreateAsync(Draft);
-        return RedirectToPage();
+        Items = await fields.ListAsync(Et);
+        Sections = await fields.ListSectionsAsync(Et);
+        if (Tab != "sektionen" && Tab != "felder") Tab = "felder";
     }
 
-    public async Task<IActionResult> OnPostDeleteAsync(Guid id)
+    public async Task<IActionResult> OnPostDeleteFieldAsync(Guid id)
     {
         await fields.DeleteAsync(id);
-        return RedirectToPage();
+        return RedirectToPage(new { Tab = "felder" });
+    }
+
+    public async Task<IActionResult> OnPostDeleteSectionAsync(Guid id)
+    {
+        await fields.DeleteSectionAsync(id);
+        return RedirectToPage(new { Tab = "sektionen" });
     }
 }

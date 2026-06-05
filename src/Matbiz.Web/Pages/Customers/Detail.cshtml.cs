@@ -1,4 +1,6 @@
 using Matbiz.Web.Data;
+using Matbiz.Web.Modules.CustomMenu.Models;
+using Matbiz.Web.Modules.CustomMenu.Services;
 using Matbiz.Web.Modules.Customers.Models;
 using Matbiz.Web.Modules.Customers.Services;
 using Matbiz.Web.Modules.Files.Models;
@@ -6,6 +8,7 @@ using Matbiz.Web.Modules.Files.Services;
 using Matbiz.Web.Modules.Tasks.Models;
 using Matbiz.Web.Modules.Tasks.Services;
 using Matbiz.Web.Modules.Users.Services;
+using Matbiz.Web.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,12 +19,14 @@ namespace Matbiz.Web.Pages.Customers;
 [Authorize]
 public class DetailModel(
     CustomerService customers,
-    CustomerFieldService fields,
+    Matbiz.Web.Modules.CustomFields.Services.CustomFieldService fields,
     TagService tags,
     TaskService tasks,
     UserAdminService userAdmin,
     Matbiz.Web.Modules.Customers.Services.CompanyService companies,
-    AttachedFileService attachedFiles) : PageModel
+    AttachedFileService attachedFiles,
+    CustomMenuService customMenu,
+    ICurrentUserAccessor currentUser) : PageModel
 {
     [BindProperty(SupportsGet = true)]
     public Guid Id { get; set; }
@@ -30,7 +35,14 @@ public class DetailModel(
     public string? Tab { get; set; }
 
     public Customer? Customer { get; private set; }
-    public List<CustomerFieldDefinition> Definitions { get; private set; } = new();
+    public List<Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition> Definitions { get; private set; } = new();
+    public List<Matbiz.Web.Modules.CustomFields.Models.CustomFieldSection> Sections { get; private set; } = new();
+    /// <summary>Custom-Field-Werte indexiert nach FieldDefinitionId.</summary>
+    public Dictionary<Guid, string?> CustomFieldValueMap { get; private set; } = new();
+
+    /// <summary>True if any field exists without a section — drives whether
+    /// the implicit "Eigene Felder" tab shows.</summary>
+    public bool HasUnsectionedFields => Definitions.Any(d => d.SectionId is null);
     public List<TaskItem> Tasks { get; private set; } = new();
     public List<Tag> AllTags { get; private set; } = new();
     public Dictionary<string, ApplicationUser> UsersById { get; private set; } = new();
@@ -81,14 +93,61 @@ public class DetailModel(
     [BindProperty] public Customer? StammDraft { get; set; }
     [BindProperty] public Dictionary<Guid, string?> CustomValues { get; set; } = new();
 
-    public string ActiveTab => Tab?.ToLowerInvariant() switch
+    public string ActiveTab
     {
-        "felder" => "felder",
-        "historie" => "historie",
-        "aufgaben" => "aufgaben",
-        "dateien" => "dateien",
-        _ => "stammdaten"
-    };
+        get
+        {
+            var t = Tab?.ToLowerInvariant();
+            if (t == "stammdaten" || t == "felder" || t == "aufgaben" || t == "dateien" || t == "historie")
+                return t;
+            if (t is { Length: > 8 } s && s.StartsWith("section-", StringComparison.OrdinalIgnoreCase))
+                return s;
+            if (t is { Length: > 5 } tt && tt.StartsWith("tool-", StringComparison.OrdinalIgnoreCase))
+                return tt;
+            return "historie";  // default landing tab — summary is in the header already
+        }
+    }
+
+    public Guid? ActiveSectionId =>
+        ActiveTab.StartsWith("section-", StringComparison.OrdinalIgnoreCase)
+        && Guid.TryParse(ActiveTab["section-".Length..], out var id) ? id : null;
+
+    /// <summary>Eingebettete Tools (CustomMenuItems mit Context=ContactDetail), für den User sichtbar.</summary>
+    public List<CustomMenuItem> ToolItems { get; private set; } = new();
+
+    public CustomMenuItem? ActiveTool =>
+        ActiveTab.StartsWith("tool-", StringComparison.OrdinalIgnoreCase)
+        && Guid.TryParse(ActiveTab["tool-".Length..], out var tid)
+            ? ToolItems.FirstOrDefault(t => t.Id == tid) : null;
+
+    /// <summary>URL mit ersetzten Platzhaltern für das aktive Tool.</summary>
+    public string? ActiveToolUrl => ActiveTool is null
+        ? null
+        : CustomMenuService.SubstituteUrl(ActiveTool.Url, BuildPlaceholderMap());
+
+    private Dictionary<string, string?> BuildPlaceholderMap()
+    {
+        var c = Customer;
+        if (c is null) return new();
+        var parts = c.Name?.Split(' ', 2);
+        return new()
+        {
+            ["Id"] = c.Id.ToString(),
+            ["FullName"] = c.Name,
+            ["Name"] = c.Name,
+            ["FirstName"] = parts is { Length: >= 1 } ? parts[0] : c.Name,
+            ["LastName"] = parts is { Length: 2 } ? parts[1] : "",
+            ["Email"] = c.Email,
+            ["Phone"] = c.Phone,
+            ["Mobile"] = c.Phone, // kein separates Mobil-Feld — Phone als Fallback
+            ["CompanyName"] = c.EffectiveCompanyName,
+            ["CustomerNumber"] = c.Id.ToString("N")[..8],
+            ["Street"] = c.Street,
+            ["City"] = c.City,
+            ["PostalCode"] = c.PostalCode,
+            ["Country"] = c.Country,
+        };
+    }
 
     [BindProperty] public IFormFile? UploadFile { get; set; }
     [BindProperty] public IFormFile? NoteFile { get; set; }
@@ -97,36 +156,37 @@ public class DetailModel(
 
     private async Task LoadAsync()
     {
+        var et = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact;
         Customer = await customers.GetAsync(Id);
-        Definitions = await fields.ListAsync();
+        Definitions = await fields.ListAsync(et);
+        Sections = await fields.ListSectionsAsync(et);
         AllTags = await tags.ListAsync();
+
+        var ctx = await currentUser.GetAsync();
+        ToolItems = await customMenu.ListVisibleAsync(ctx.UserId, CustomMenuContext.ContactDetail);
         if (Customer is not null)
         {
+            CustomFieldValueMap = await fields.GetValueMapAsync(et, Customer.Id);
+
             Tasks = await tasks.ListByCustomerAsync(Customer.Id);
             UsersById = (await userAdmin.ListAsync()).ToDictionary(u => u.Id, u => u);
             AllCompanies = await companies.ListAsync();
             LibraryFiles = await attachedFiles.ListForOwnerAsync(AttachedFileOwnerType.CustomerLibrary, Customer.Id);
 
-            // History attachments — group by history entry id
             var histIds = Customer.History.Select(h => h.Id).ToList();
             if (histIds.Count > 0)
             {
-                var atts = await attachedFiles.ListForOwnerAsync(AttachedFileOwnerType.CustomerHistory, Guid.Empty);
-                // The helper filters by ownerId — call once per entry would be N+1.
-                // Instead query the table once directly:
                 var all = new List<AttachedFile>();
                 foreach (var hid in histIds)
                     all.AddRange(await attachedFiles.ListForOwnerAsync(AttachedFileOwnerType.CustomerHistory, hid));
                 HistoryAttachments = all.GroupBy(a => a.OwnerId).ToDictionary(g => g.Key, g => g.ToList());
             }
 
-            // Custom-field "File" lookups — value stores AttachedFile.Id (as guid string)
-            var fileIds = Customer.CustomFieldValues
-                .Where(v => v.FieldDefinition.Type == CustomFieldType.File && Guid.TryParse(v.Value, out _))
-                .Select(v => Guid.Parse(v.Value!))
-                .ToList();
-            foreach (var fid in fileIds)
+            // Custom-field "File" lookups — value stores AttachedFile.Id (Guid-string)
+            var fileDefIds = Definitions.Where(d => d.Type == Matbiz.Web.Modules.CustomFields.Models.CustomFieldType.File).Select(d => d.Id).ToHashSet();
+            foreach (var kv in CustomFieldValueMap)
             {
+                if (!fileDefIds.Contains(kv.Key) || !Guid.TryParse(kv.Value, out var fid)) continue;
                 var f = await attachedFiles.GetAsync(fid);
                 if (f is not null) CustomFieldFiles[fid] = f;
             }
@@ -173,23 +233,21 @@ public class DetailModel(
     {
         await LoadAsync();
         if (Customer is null) return NotFound();
-        foreach (var def in Definitions)
-        {
-            var input = CustomValues.TryGetValue(def.Id, out var v) ? v : null;
-            var existing = Customer.CustomFieldValues.FirstOrDefault(x => x.FieldDefinitionId == def.Id);
-            if (existing is null)
-            {
-                if (!string.IsNullOrWhiteSpace(input))
-                    Customer.CustomFieldValues.Add(new CustomerFieldValue { FieldDefinitionId = def.Id, Value = input });
-            }
-            else
-            {
-                existing.Value = input;
-            }
-        }
-        await customers.UpdateAsync(Customer);
+        await fields.SaveValuesAsync(Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact, Customer.Id, CustomValues);
         TempData["StatusMessage"] = "Felder gespeichert.";
-        return RedirectToPage(new { id = Id, tab = "felder" });
+        return RedirectToPage(new { id = Id, tab = Tab ?? "felder" });
+    }
+
+    public async Task<IActionResult> OnPostEditHistoryAsync(Guid entryId, string? details)
+    {
+        await customers.UpdateHistoryAsync(entryId, details ?? "");
+        return RedirectToPage(new { id = Id, tab = "historie" });
+    }
+
+    public async Task<IActionResult> OnPostDeleteHistoryAsync(Guid entryId)
+    {
+        await customers.DeleteHistoryAsync(entryId);
+        return RedirectToPage(new { id = Id, tab = "historie" });
     }
 
     public async Task<IActionResult> OnPostNoteAsync()
@@ -237,21 +295,17 @@ public class DetailModel(
 
         await LoadAsync();
         if (Customer is null) return NotFound();
+        var et = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact;
 
-        // If there is already a file value, delete the previous file first (replace semantics).
-        var existing = Customer.CustomFieldValues.FirstOrDefault(v => v.FieldDefinitionId == CustomFieldDefId);
-        if (existing is not null && Guid.TryParse(existing.Value, out var oldId))
+        // Replace-Semantik: alte Datei löschen falls vorhanden
+        if (CustomFieldValueMap.TryGetValue(CustomFieldDefId, out var oldVal)
+            && Guid.TryParse(oldVal, out var oldId))
             await attachedFiles.DeleteAsync(oldId);
 
         var saved = await attachedFiles.UploadAsync(AttachedFileOwnerType.CustomFieldValue, CustomFieldDefId, CustomFieldFile);
         if (saved is null) return RedirectToPage(new { id = Id, tab = "felder" });
 
-        if (existing is null)
-            Customer.CustomFieldValues.Add(new CustomerFieldValue { FieldDefinitionId = CustomFieldDefId, Value = saved.Id.ToString() });
-        else
-            existing.Value = saved.Id.ToString();
-
-        await customers.UpdateAsync(Customer);
+        await fields.SaveValuesAsync(et, Customer.Id, new Dictionary<Guid, string?> { [CustomFieldDefId] = saved.Id.ToString() });
         return RedirectToPage(new { id = Id, tab = "felder" });
     }
 
@@ -259,15 +313,13 @@ public class DetailModel(
     {
         await LoadAsync();
         if (Customer is null) return NotFound();
+        var et = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact;
 
-        var existing = Customer.CustomFieldValues.FirstOrDefault(v => v.FieldDefinitionId == fieldDefId);
-        if (existing is not null)
-        {
-            if (Guid.TryParse(existing.Value, out var oldId))
-                await attachedFiles.DeleteAsync(oldId);
-            existing.Value = null;
-            await customers.UpdateAsync(Customer);
-        }
+        if (CustomFieldValueMap.TryGetValue(fieldDefId, out var oldVal)
+            && Guid.TryParse(oldVal, out var oldId))
+            await attachedFiles.DeleteAsync(oldId);
+
+        await fields.SaveValuesAsync(et, Customer.Id, new Dictionary<Guid, string?> { [fieldDefId] = null });
         return RedirectToPage(new { id = Id, tab = "felder" });
     }
 

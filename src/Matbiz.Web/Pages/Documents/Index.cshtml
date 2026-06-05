@@ -1,0 +1,118 @@
+@page
+@model Matbiz.Web.Pages.Documents.IndexModel
+@using Matbiz.Web.Modules.Documents.Models
+@{ ViewData["Title"] = "Belege"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Belege</h1>
+    @if (User.IsInRole("Admin"))
+    {
+        <div class="dropdown me-2">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-cloud-download"></i> Export
+            </button>
+            <div class="dropdown-menu dropdown-menu-end p-3" style="min-width: 280px;">
+                <h6 class="dropdown-header px-0">DATEV-Buchungsstapel</h6>
+                <form action="/documents/export/datev" method="get" target="_blank" class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label small">Zeitraum</label>
+                        <div class="d-flex gap-1">
+                            <input type="date" name="from" class="form-control form-control-sm"
+                                   value="@DateTime.UtcNow.ToString("yyyy-MM-01")" />
+                            <input type="date" name="to" class="form-control form-control-sm"
+                                   value="@DateTime.UtcNow.ToString("yyyy-MM-dd")" />
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <button class="btn btn-primary btn-sm w-100"><i class="bi bi-file-earmark-spreadsheet"></i> CSV herunterladen</button>
+                    </div>
+                </form>
+                <small class="text-muted d-block mt-2">
+                    Format: DATEV-EXTF v7 (Win-1252). Nur versendete/bezahlte Rechnungen + Gutschriften.
+                </small>
+            </div>
+        </div>
+    }
+    <div class="dropdown">
+        <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-plus-lg"></i> Neuer Beleg
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="/Documents/Create?type=Offer">Angebot</a></li>
+            <li><a class="dropdown-item" href="/Documents/Create?type=Order">Auftrag</a></li>
+            <li><a class="dropdown-item" href="/Documents/Create?type=Invoice">Rechnung</a></li>
+            <li><a class="dropdown-item" href="/Documents/Create?type=CreditNote">Gutschrift</a></li>
+        </ul>
+    </div>
+</div>
+
+<div class="list-toolbar">
+    <input class="form-control form-control-sm list-toolbar-search" data-filter-search="document-list-body" placeholder="Suche Nummer, Kunde…" />
+    <select class="form-select form-select-sm" data-filter-attr="type" data-filter-target="document-list-body">
+        <option value="">Alle Typen</option>
+        <option value="Offer">Angebot</option>
+        <option value="Order">Auftrag</option>
+        <option value="Invoice">Rechnung</option>
+        <option value="CreditNote">Gutschrift</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter-attr="status" data-filter-target="document-list-body">
+        <option value="">Alle Status</option>
+        <option value="Draft">Entwurf</option>
+        <option value="Sent">Versendet</option>
+        <option value="Accepted">Angenommen</option>
+        <option value="Paid">Bezahlt</option>
+        <option value="PartiallyPaid">Teilbezahlt</option>
+        <option value="Cancelled">Storniert</option>
+    </select>
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="document-list-body">@Model.Items.Count</span> Eintrag/Einträge</span>
+</div>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th style="width: 100px;">Typ</th>
+            <th style="width: 140px;">Nummer</th>
+            <th style="width: 110px;">Datum</th>
+            <th>Empfänger</th>
+            <th style="width: 130px;">Status</th>
+            <th style="width: 120px;" class="text-end">Netto</th>
+            <th style="width: 120px;" class="text-end">Brutto</th>
+            <th style="width: 80px;" class="text-end">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody id="document-list-body" data-paginate data-page-size="50">
+        @if (Model.Items.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="8">Keine Daten</td></tr>
+        }
+        else
+        {
+            @foreach (var d in Model.Items)
+            {
+                <tr data-filter-text="@d.Number @d.CustomerNameSnapshot"
+                    data-filter-type="@d.Type"
+                    data-filter-status="@d.Status">
+                    <td><span class="badge bg-secondary-subtle text-secondary">@Matbiz.Web.Pages.Documents.IndexModel.TypeLabel(d.Type)</span></td>
+                    <td><a class="text-decoration-none text-reset" href="/Documents/Edit/@d.Id"><code><strong>@d.Number</strong></code></a></td>
+                    <td>@d.DocumentDate.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                    <td>@d.CustomerNameSnapshot</td>
+                    <td><span class="badge @Matbiz.Web.Pages.Documents.IndexModel.StatusBadgeClass(d.Status)">@Matbiz.Web.Pages.Documents.IndexModel.StatusLabel(d.Status)</span></td>
+                    <td class="text-end">@d.NetTotal.ToString("N2") €</td>
+                    <td class="text-end"><strong>@d.GrossTotal.ToString("N2") €</strong></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" href="/Documents/Edit/@d.Id"><i class="bi bi-pencil"></i></a>
+                        @if (d.Status == DocumentStatus.Draft)
+                        {
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@d.Id" class="d-inline"
+                                  onsubmit="return confirm('Beleg „@d.Number\" wirklich löschen?');">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<div data-pagination="document-list-body"></div>

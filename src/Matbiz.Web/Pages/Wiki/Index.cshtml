@@ -1,0 +1,67 @@
+@page
+@model Matbiz.Web.Pages.Wiki.IndexModel
+@using Matbiz.Web.Modules.Wiki.Models
+@{ ViewData["Title"] = "Wiki"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Wiki</h1>
+    <a class="btn btn-primary" href="/Wiki/Create"><i class="bi bi-plus-lg"></i> Neue Seite</a>
+</div>
+
+<div class="list-toolbar">
+    <input class="form-control form-control-sm list-toolbar-search" data-filter-search="wiki-list-body" placeholder="Suche Titel…" />
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="wiki-list-body">@Model.Pages.Count</span> Eintrag/Einträge</span>
+</div>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Titel</th>
+            <th>Sichtbarkeit</th>
+            <th>Zugeordnet</th>
+            <th>Aktualisiert</th>
+            <th class="text-end">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody id="wiki-list-body" data-paginate data-page-size="25">
+        @if (Model.Pages.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="5">Keine Daten</td></tr>
+        }
+        else
+        {
+            @foreach (var p in Model.Pages)
+            {
+                <tr data-filter-text="@p.Title @p.Slug">
+                    <td>
+                        <a class="text-decoration-none text-reset" href="/Wiki/@p.Slug">
+                            <i class="bi bi-file-text text-muted me-1"></i><strong>@p.Title</strong>
+                        </a>
+                    </td>
+                    <td>
+                        <span class="badge bg-secondary-subtle text-secondary">
+                            <i class="bi @Matbiz.Web.Pages.Wiki.IndexModel.VisibilityIcon(p.Visibility)"></i>
+                            @Matbiz.Web.Pages.Wiki.IndexModel.VisibilityLabel(p.Visibility)
+                        </span>
+                    </td>
+                    <td class="text-muted small">
+                        @if (p.Visibility == WikiVisibility.Departments && p.Departments.Count > 0)
+                        {
+                            @string.Join(", ", p.Departments.Select(d => d.Department.Name))
+                        }
+                        else if (p.Visibility == WikiVisibility.Teams && p.Teams.Count > 0)
+                        {
+                            @string.Join(", ", p.Teams.Select(t => t.Team.Name))
+                        }
+                    </td>
+                    <td class="text-muted small">@p.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" href="/Wiki/@p.Slug" title="Öffnen"><i class="bi bi-eye"></i></a>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<div data-pagination="wiki-list-body"></div>

@@ -40,15 +40,361 @@
     }
 }
 
+/* Defensive: even if Bootstrap doesn't follow data-bs-theme for some reason,
+   our own muted-text utility uses the token. */
+[data-theme="dark"] .text-muted,
+[data-bs-theme="dark"] .text-muted {
+    color: var(--text-muted) !important;
+}
+
+/* Bootstrap's "subtle" badge variants assume a light background — in dark
+   theme the pastel backgrounds clash. Pump them up to look right on dark. */
+[data-bs-theme="dark"] .bg-success-subtle  { background-color: rgba(2, 122, 72, 0.2) !important; }
+[data-bs-theme="dark"] .bg-info-subtle     { background-color: rgba(24, 73, 169, 0.2) !important; }
+[data-bs-theme="dark"] .bg-warning-subtle  { background-color: rgba(180, 88, 7, 0.22) !important; }
+[data-bs-theme="dark"] .bg-secondary-subtle{ background-color: rgba(110, 119, 129, 0.22) !important; }
+[data-bs-theme="dark"] .text-success { color: #6ee7b7 !important; }
+[data-bs-theme="dark"] .text-info    { color: #93c5fd !important; }
+[data-bs-theme="dark"] .text-warning { color: #fcd34d !important; }
+[data-bs-theme="dark"] .text-secondary { color: #c9d1d9 !important; }
+
+/* Meta-pills used in task list / dashboard tables get dark-friendly variants
+   so the bright pastels (#fee4e2, #eff6ff) don't glow on a dark page. */
+[data-bs-theme="dark"] .meta-pill              { background: var(--bg-subtle); color: var(--text-muted); }
+[data-bs-theme="dark"] .meta-pill.prio-urgent  { background: rgba(180, 35, 24, 0.22); color: #fca5a5; }
+[data-bs-theme="dark"] .meta-pill.prio-high    { background: rgba(180, 71, 8, 0.22); color: #fcd34d; }
+[data-bs-theme="dark"] .meta-pill.prio-normal  { background: rgba(52, 64, 84, 0.4);  color: #c9d1d9; }
+[data-bs-theme="dark"] .meta-pill.prio-low     { background: rgba(2, 122, 72, 0.22); color: #6ee7b7; }
+[data-bs-theme="dark"] .meta-pill.status-open      { background: rgba(24, 73, 169, 0.22); color: #93c5fd; }
+[data-bs-theme="dark"] .meta-pill.status-progress  { background: rgba(154, 52, 18, 0.22); color: #fdba74; }
+[data-bs-theme="dark"] .meta-pill.status-done      { background: rgba(2, 122, 72, 0.22); color: #6ee7b7; }
+[data-bs-theme="dark"] .meta-pill.status-cancelled { background: rgba(110, 119, 129, 0.22); color: var(--text-muted); }
+[data-bs-theme="dark"] .meta-pill.team-pill        { background: rgba(91, 33, 182, 0.22); color: #c4b5fd; }
+
+/* Bootstrap tables — even with data-bs-theme set, the row backgrounds / header
+   stripes don't always pick up. Force the dark variant explicitly. */
+[data-bs-theme="dark"] .table {
+    --bs-table-bg: transparent;
+    --bs-table-color: var(--text);
+    --bs-table-border-color: var(--border);
+    --bs-table-striped-bg: var(--bg-subtle);
+    --bs-table-hover-bg: var(--bg-hover);
+    --bs-table-active-bg: var(--bg-hover);
+    color: var(--text);
+}
+
+[data-bs-theme="dark"] .table > thead {
+    background: var(--bg-subtle);
+}
+
+[data-bs-theme="dark"] .table > thead > tr > th,
+[data-bs-theme="dark"] .table > tbody > tr > td,
+[data-bs-theme="dark"] .table > tfoot > tr > td {
+    background-color: transparent;
+    color: var(--text);
+    border-color: var(--border);
+}
+
+[data-bs-theme="dark"] .table-hover > tbody > tr:hover > * {
+    background-color: var(--bg-hover);
+    color: var(--text);
+}
+
+/* The "bg-light" utility on inline create-form panels (#create-form) needs
+   to track the theme too — otherwise it stays bright on dark. */
+[data-bs-theme="dark"] .bg-light {
+    background-color: var(--bg-subtle) !important;
+    color: var(--text);
+}
+
+/* Alerts: success / info / warning / danger use bright pastel backgrounds
+   in light mode. Replace with darker tints. */
+[data-bs-theme="dark"] .alert-success { background-color: rgba(2, 122, 72, 0.15);  border-color: rgba(2, 122, 72, 0.3); color: #6ee7b7; }
+[data-bs-theme="dark"] .alert-info    { background-color: rgba(24, 73, 169, 0.15); border-color: rgba(24, 73, 169, 0.3); color: #93c5fd; }
+[data-bs-theme="dark"] .alert-warning { background-color: rgba(180, 88, 7, 0.15);  border-color: rgba(180, 88, 7, 0.3);  color: #fcd34d; }
+[data-bs-theme="dark"] .alert-danger  { background-color: rgba(180, 35, 24, 0.15); border-color: rgba(180, 35, 24, 0.3); color: #fca5a5; }
+
+/* Form controls in dark — Bootstrap sets these via data-bs-theme but a few
+   leak through with light borders. */
+[data-bs-theme="dark"] .form-control,
+[data-bs-theme="dark"] .form-select {
+    background-color: var(--bg-elev);
+    color: var(--text);
+    border-color: var(--border-strong);
+}
+[data-bs-theme="dark"] .form-control:focus,
+[data-bs-theme="dark"] .form-select:focus {
+    background-color: var(--bg-elev);
+    color: var(--text);
+    border-color: var(--brand-primary);
+}
+[data-bs-theme="dark"] .form-control::placeholder { color: var(--text-muted); }
+
 html, body {
     height: 100%;
+}
+
+/* --- Kompakt-Skalierung -------------------------------------------
+   13.5px Basis statt Bootstrap-default 16px ≈ 16% denser.
+   Alle rem-basierten Größen (Bootstrap-Buttons, Inputs, Spacing,
+   Headings) skalieren automatisch mit. */
+html {
+    font-size: 15px;
 }
 
 body {
     background: var(--bg);
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.45;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
 }
+
+/* Bootstrap Icons (Webfont) — explizit Subpixel-Glättung erzwingen.
+   Ohne das rendert Windows/Chrome viele Icons körnig / ohne Antialiasing. */
+.bi, [class^="bi-"], [class*=" bi-"] {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "liga";
+    text-rendering: optimizeLegibility;
+    /* Verhindert „1px-Verschiebungen" die zu Kanten-Treppchen führen */
+    display: inline-block;
+    vertical-align: -0.125em;
+    line-height: 1;
+}
+
+/* Bootstrap-Headings entschärfen */
+h1, .h1 { font-size: 1.5rem; font-weight: 600; }
+h2, .h2 { font-size: 1.3rem; font-weight: 600; }
+h3, .h3 { font-size: 1.1rem; font-weight: 600; }
+h4, .h4 { font-size: 1rem;   font-weight: 600; }
+h5, .h5 { font-size: 0.95rem; font-weight: 600; }
+h6, .h6 { font-size: 0.9rem;  font-weight: 600; }
+
+/* Buttons & Form-Controls: durchgängig sm-Niveau */
+.btn {
+    padding: 0.25rem 0.6rem;
+    font-size: 0.875rem;
+    border-radius: 4px;
+}
+.btn-lg { padding: 0.4rem 0.85rem; font-size: 1rem; }
+.btn-sm { padding: 0.25rem 0.5rem; font-size: 0.825rem; }
+.form-control, .form-select {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.9rem;
+    border-radius: 4px;
+}
+.form-control-lg, .form-select-lg { padding: 0.4rem 0.7rem; font-size: 1rem; }
+.form-control-sm, .form-select-sm { padding: 0.2rem 0.4rem; font-size: 0.8rem; }
+.form-label { margin-bottom: 0.25rem; font-size: 0.85rem; font-weight: 500; }
+.form-text { font-size: 0.78rem; margin-top: 0.2rem; }
+.form-check-label { font-size: 0.875rem; }
+.input-group-text { padding: 0.3rem 0.55rem; font-size: 0.9rem; }
+
+/* Tables — komfortable Zeilenhöhe, einheitlich für alle Listen */
+.table > :not(caption) > * > * { padding: 0.55rem 0.65rem; }
+.table { font-size: 0.875rem; margin-bottom: 0.75rem; }
+.table thead th { font-weight: 600; font-size: 0.8rem; text-transform: none; padding: 0.5rem 0.65rem; }
+
+/* Badges & Nav */
+.badge { padding: 0.2em 0.45em; font-size: 0.72em; font-weight: 500; }
+.nav-tabs .nav-link { padding: 0.4rem 0.75rem; font-size: 0.88rem; }
+.nav-link { padding: 0.4rem 0.65rem; }
+
+/* Cards & Alerts */
+.card { border-radius: 6px; }
+.card-body { padding: 0.75rem 1rem; }
+.alert { padding: 0.5rem 0.75rem; font-size: 0.875rem; border-radius: 5px; margin-bottom: 0.75rem; }
+
+/* Standard-Container-Padding der Content-Area reduzieren */
+.content.px-4 { padding-left: 1rem !important; padding-right: 1rem !important; }
+.content.py-3 { padding-top: 0.65rem !important; padding-bottom: 0.65rem !important; }
+
+/* Listen-Group */
+.list-group-item { padding: 0.5rem 0.75rem; font-size: 0.875rem; }
+
+/* --- Filter-Bar (Standard über Listen) ------------------------------
+   Anwendung:
+   <div class="list-toolbar">
+     <input class="form-control form-control-sm list-toolbar-search" placeholder="Suchen…" />
+     <select class="form-select form-select-sm">...</select>
+     <div class="list-toolbar-spacer"></div>
+     <a class="btn btn-primary btn-sm">Neu</a>
+   </div>
+*/
+/* --- Menü-Layout ---------------------------------------------------- */
+.layout-handle {
+    cursor: grab;
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    padding: 0 0.25rem;
+}
+.layout-handle:active { cursor: grabbing; }
+.layout-row-hidden { opacity: 0.55; }
+.layout-row-hidden td strong { font-style: italic; }
+
+/* --- Modul-Liste --------------------------------------------------- */
+.module-row-core { background: var(--bg-subtle); }
+.module-row-core td { color: var(--text-muted); }
+.module-row-core td strong { color: var(--text); }
+
+/* --- Statistik-KPI-Kacheln ---------------------------------------- */
+.kpi-tile {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    padding: 0.85rem 1rem;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    height: 100%;
+}
+.kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+}
+.kpi-value { font-size: 1.4rem; font-weight: 600; line-height: 1.2; color: var(--text); }
+.kpi-label { font-size: 0.85rem; color: var(--text-muted); }
+
+/* --- PDF-Template-Picker ------------------------------------------- */
+.pdf-template-card {
+    display: block;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    padding: 0.5rem;
+    cursor: pointer;
+    background: var(--bg-elev);
+    transition: border-color 0.15s;
+}
+.pdf-template-card:hover { border-color: var(--text-muted); }
+.pdf-template-card.active { border-color: var(--brand-primary, #1b6ec2); box-shadow: 0 0 0 3px rgba(27, 110, 194, 0.15); }
+.pdf-template-preview { aspect-ratio: 100 / 142; background: #fff; border-radius: 4px; overflow: hidden; }
+.pdf-preview-svg { width: 100%; height: 100%; display: block; }
+.pdf-template-info { padding-top: 0.5rem; }
+
+/* --- Artikel-Bild --------------------------------------------------- */
+.article-image-box {
+    width: 100%;
+    aspect-ratio: 1;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+.article-image-preview {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+}
+.article-image-placeholder { font-size: 2.5rem; text-align: center; }
+
+.article-thumb {
+    width: 36px;
+    height: 36px;
+    object-fit: cover;
+    border-radius: 4px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+}
+.article-thumb-placeholder {
+    width: 36px;
+    height: 36px;
+    border-radius: 4px;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+.list-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+    padding: 0.55rem 0.7rem;
+    background: var(--bg-subtle);
+    border-radius: 6px;
+    margin-bottom: 0.6rem;
+}
+.list-toolbar-search { max-width: 300px; min-width: 200px; flex: 0 1 300px; }
+.list-toolbar-spacer { flex: 1; }
+.list-toolbar .form-select-sm,
+.list-toolbar .form-control-sm { max-width: 220px; }
+/* Filter-Pill-Gruppe innerhalb der Toolbar (z.B. Gruppen-Entity Toggle) */
+.list-toolbar .btn-group .btn { padding: 0.2rem 0.55rem; font-size: 0.8rem; }
+/* Tag-Dropdown-Button innerhalb der Toolbar — gleicher Look wie ein Select */
+.list-toolbar .tag-filter-dropdown > summary {
+    padding: 0.2rem 0.5rem !important;
+    font-size: 0.8rem !important;
+}
+
+/* Generischer Client-Side-Filter:
+   <input data-filter-search="<target-id>" /> + <tbody id="<target-id>"> mit Rows die
+   data-filter-text="..." haben → die Rows werden basierend auf der Eingabe ein-/ausgeblendet. */
+
+/* --- Breadcrumb --------------------------------------------------- */
+.breadcrumb-nav {
+    margin: 0 0 0.5rem;
+    padding: 0;
+}
+.breadcrumb-nav .breadcrumb {
+    margin: 0;
+    padding: 0;
+    background: transparent;
+    font-size: 0.8rem;
+    --bs-breadcrumb-divider: "›";
+    flex-wrap: wrap;
+}
+.breadcrumb-nav .breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: var(--text-muted);
+    padding: 0 0.4rem;
+}
+.breadcrumb-nav .breadcrumb-item a {
+    color: var(--text-muted);
+    text-decoration: none;
+}
+.breadcrumb-nav .breadcrumb-item a:hover { color: var(--brand-primary, #1b6ec2); }
+.breadcrumb-nav .breadcrumb-item.active { color: var(--text-muted); }
+
+/* Konventionelle „leere Liste"-Zeile —
+   IMMER sichtbarer Header, in der Tabelle steht „Keine Daten". */
+.empty-row:hover { background: transparent !important; }
+.empty-row td {
+    text-align: center;
+    color: var(--text-muted);
+    padding: 0.75rem 0.6rem !important;
+    font-size: 0.85rem;
+}
+.empty-list-hint {
+    padding: 0.75rem;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+}
+
+/* Dropdowns */
+.dropdown-menu { font-size: 0.875rem; padding: 0.25rem 0; }
+.dropdown-item { padding: 0.3rem 0.75rem; }
+
+/* Modals */
+.modal-header { padding: 0.6rem 1rem; }
+.modal-body { padding: 0.75rem 1rem; }
+.modal-footer { padding: 0.5rem 1rem; }
 
 /* --- Layout grid --------------------------------------------------- */
 .page {
@@ -70,10 +416,12 @@ main {
 @media (min-width: 641px) {
     .page { flex-direction: row; }
     .sidebar {
-        width: 230px;
-        min-height: 100vh;
+        width: 200px;
+        height: 100vh;
         position: sticky;
         top: 0;
+        display: flex;
+        flex-direction: column;
         border-right: 1px solid var(--border);
         border-bottom: none;
     }
@@ -81,27 +429,78 @@ main {
 
 /* --- Brand / Nav --------------------------------------------------- */
 .brand {
-    height: 3.5rem;
+    min-height: 2.8rem;
     display: flex;
+    flex-direction: column;
     align-items: center;
-    padding: 0 1.25rem;
+    justify-content: center;
+    gap: 0.2rem;
+    padding: 0.5rem 1rem;
     border-bottom: 1px solid var(--border);
 }
 
 .brand-name {
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     font-weight: 600;
     color: var(--text);
 }
 
+.brand-name-under {
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+    opacity: 0.85;
+}
+
 .brand-logo {
-    max-height: 2.2rem;
     max-width: 100%;
+    object-fit: contain;
+}
+
+/* Checkered Background um Logo-Transparenz visuell sichtbar zu machen */
+.logo-preview-checker {
+    display: inline-block;
+    padding: 8px;
+    border-radius: 4px;
+    background-image:
+        linear-gradient(45deg, #ccc 25%, transparent 25%),
+        linear-gradient(-45deg, #ccc 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #ccc 75%),
+        linear-gradient(-45deg, transparent 75%, #ccc 75%);
+    background-size: 16px 16px;
+    background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+    background-color: #fff;
+}
+[data-theme="dark"] .logo-preview-checker,
+[data-bs-theme="dark"] .logo-preview-checker {
+    background-image:
+        linear-gradient(45deg, #444 25%, transparent 25%),
+        linear-gradient(-45deg, #444 25%, transparent 25%),
+        linear-gradient(45deg, transparent 75%, #444 75%),
+        linear-gradient(-45deg, transparent 75%, #444 75%);
+    background-color: #222;
+}
+
+.brand-logo.logo-invert-always { filter: invert(1) hue-rotate(180deg); }
+[data-theme="dark"]    .brand-logo.logo-invert-dark { filter: invert(1) hue-rotate(180deg); }
+[data-bs-theme="dark"] .brand-logo.logo-invert-dark { filter: invert(1) hue-rotate(180deg); }
+@media (prefers-color-scheme: dark) {
+    [data-theme="system"] .brand-logo.logo-invert-dark { filter: invert(1) hue-rotate(180deg); }
+}
+
+/* Light/Dark Logo-Switch — wenn zwei Logos hochgeladen sind */
+.brand-logo-dark { display: none; }
+[data-theme="dark"]    .brand-logo-light { display: none; }
+[data-theme="dark"]    .brand-logo-dark  { display: block; }
+[data-bs-theme="dark"] .brand-logo-light { display: none; }
+[data-bs-theme="dark"] .brand-logo-dark  { display: block; }
+@media (prefers-color-scheme: dark) {
+    [data-theme="system"] .brand-logo-light { display: none; }
+    [data-theme="system"] .brand-logo-dark  { display: block; }
 }
 
 .nav-section {
-    padding: 1rem 1.25rem 0.25rem;
-    font-size: 0.7rem;
+    padding: 0.7rem 1rem 0.15rem;
+    font-size: 0.65rem;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -109,10 +508,11 @@ main {
 }
 
 .nav-scrollable {
-    padding: 0.5rem 0.5rem 1rem;
+    padding: 0.4rem 0.4rem 0.75rem;
     display: flex;
     flex-direction: column;
-    height: calc(100vh - 3.5rem);
+    flex: 1 1 auto;          /* nimmt restlichen Platz zwischen Brand und nav-bottom */
+    min-height: 0;           /* damit overflow innerhalb des Flex-Containers greift */
     overflow-y: auto;
 }
 
@@ -126,8 +526,9 @@ main {
     color: var(--text);
     background: none;
     border: none;
-    border-radius: 6px;
-    padding: 0.5rem 0.75rem;
+    border-radius: 5px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.875rem;
     display: flex;
     align-items: center;
     width: 100%;
@@ -160,28 +561,175 @@ main {
 
 .nav-spacer { flex: 1 1 auto; min-height: 1rem; }
 
+/* Bottom-Bereich: User + Logout — bleibt unten kleben, scrollt nicht mit */
+.nav-bottom {
+    flex: 0 0 auto;
+    padding: 0.4rem 0.4rem 0.75rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg-elev);
+}
+
 .nav-logout {
-    color: #6e7781 !important;
+    color: var(--text-muted) !important;
     font-size: 0.85rem;
+}
+
+/* --- Menü-Item-Liste (Admin/Menu) -------------------------------- */
+.menu-item-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.menu-item-row {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    margin-bottom: 0.35rem;
+    background: var(--bg-elev);
+}
+.menu-item-handle {
+    color: var(--text-muted);
+    cursor: grab;
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+.menu-item-handle:active { cursor: grabbing; }
+.menu-item-icon {
+    width: 26px;
+    height: 26px;
+    border-radius: 5px;
+    background: var(--bg-subtle);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--brand-primary, #1b6ec2);
+    flex-shrink: 0;
+    font-size: 0.9rem;
+}
+.menu-item-body { flex-grow: 1; min-width: 0; }
+.menu-item-title { font-weight: 600; font-size: 0.9rem; line-height: 1.25; }
+.menu-item-meta { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.78rem; }
+.menu-item-badges { display: flex; gap: 0.4rem; flex-wrap: wrap; flex-shrink: 0; }
+.menu-item-actions { display: flex; gap: 0.25rem; flex-shrink: 0; }
+.menu-item-ghost { opacity: 0.4; background: var(--bg-subtle); }
+.menu-item-chosen { background: var(--bg-hover); }
+
+/* --- Icon-Picker ------------------------------------------------- */
+.icon-picker-btn {
+    height: calc(1.5em + 0.6rem + 2px);
+    width: 100%;
+    background: var(--bg-elev);
+    border: 1px solid var(--border);
+    color: var(--brand-primary, #1b6ec2);
+    font-size: 1.1rem;
+    line-height: 1;
+    padding: 0;
+}
+.icon-picker-btn:hover { background: var(--bg-hover); }
+.icon-picker-dialog {
+    min-width: 500px;
+    max-width: 90vw;
+    border: 1px solid var(--border);
+    background: var(--bg-elev);
+    color: var(--text);
+    border-radius: 8px;
+    padding: 1rem;
+}
+.icon-picker-dialog::backdrop { background: rgba(0,0,0,0.4); }
+.icon-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(44px, 1fr));
+    gap: 0.25rem;
+    max-height: 50vh;
+    overflow-y: auto;
+    padding: 0.25rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+}
+.icon-tile {
+    aspect-ratio: 1;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--text);
+    border-radius: 4px;
+    font-size: 1.05rem;
+    cursor: pointer;
+    transition: background 0.1s;
+    padding: 0;
+}
+.icon-tile:hover { background: var(--bg-hover); border-color: var(--border); }
+
+/* --- Embedded-Tool-Viewer --------------------------------------- */
+.embedded-tool-shell {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 60px);
+    margin: -1rem -1.5rem;
+}
+.embedded-tool-header {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--bg-subtle);
+    border-bottom: 1px solid var(--border);
+}
+.embedded-tool-frame {
+    flex-grow: 1;
+    border: 0;
+    width: 100%;
+    background: #fff;
+}
+
+/* --- Admin shell ------------------------------------------------ */
+.admin-sidebar .brand {
+    background: var(--bg-subtle);
+}
+.admin-shell-header {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    background: var(--bg-subtle);
+    border: 1px solid var(--border);
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--text-muted);
 }
 
 /* --- Impersonation banner ----------------------------------------- */
 .impersonation-banner {
-    background: #d9534f;
+    background: #198754;
     color: #fff;
-    padding: 0.5rem 1rem;
+    padding: 0.4rem 1rem;
     display: flex;
     align-items: center;
     gap: 0.25rem;
-    border-bottom: 2px solid #b52b27;
+    border-bottom: 2px solid #146c43;
     position: sticky;
     top: 0;
     z-index: 1500;
-    font-size: 0.95rem;
+    font-size: 0.875rem;
 }
-
+.impersonation-banner-target {
+    background: #157347;
+    border-bottom-color: #0f5132;
+}
+.impersonation-banner .impersonation-meta {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 0.78rem;
+}
 .impersonation-banner .text-muted {
-    color: rgba(255, 255, 255, 0.75) !important;
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+.impersonation-banner .btn-light {
+    padding: 0.15rem 0.5rem;
+    font-size: 0.8rem;
 }
 
 /* --- Login --------------------------------------------------------- */
@@ -337,15 +885,72 @@ main {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 0;
+    padding: 0.5rem 0.25rem;
     border-bottom: 1px solid var(--border);
+    background: var(--bg-elev);
 }
 .widget-row:last-of-type { border-bottom: none; }
-.widget-row-grip { display: flex; flex-direction: column; gap: 0.1rem; }
-.widget-row-grip .btn-link { color: var(--text-muted); }
-.widget-row-grip .btn-link:disabled { opacity: 0.3; }
+
+.widget-drag-handle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    color: var(--text-muted);
+    cursor: grab;
+    user-select: none;
+    flex-shrink: 0;
+}
+.widget-drag-handle:active { cursor: grabbing; }
+.widget-drag-handle:hover { color: var(--text); }
+
+/* SortableJS drag visuals */
+.widget-row-ghost {
+    opacity: 0.4;
+    background: var(--bg-subtle);
+}
+.widget-row-chosen {
+    background: var(--bg-hover);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
 
 .widget-count { width: 70px; }
+
+/* --- Radio-card pattern (used in Group create) -------------------- */
+.radio-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    background: var(--bg-elev);
+    transition: border-color 0.1s ease, box-shadow 0.1s ease;
+    margin: 0;
+}
+.radio-card:hover { border-color: var(--brand-primary); }
+.radio-card input[type=radio] { margin: 0; }
+.radio-card:has(input[type=radio]:checked) {
+    border-color: var(--brand-primary);
+    box-shadow: inset 0 0 0 1px var(--brand-primary);
+}
+.radio-card-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+    flex-shrink: 0;
+}
+.radio-card:has(input[type=radio]:checked) .radio-card-icon {
+    background: rgba(27, 110, 194, 0.1);
+    color: var(--brand-primary);
+}
 
 /* --- Column config dropdown -------------------------------------- */
 .column-config-wrap { position: relative; }
@@ -629,8 +1234,12 @@ main {
     color: var(--brand-primary);
 }
 
-.tag-add-form {
+.tag-add {
     display: inline-flex;
+    align-items: center;
+}
+
+.tag-add-form {
     align-items: center;
     gap: 0.25rem;
 }
@@ -641,10 +1250,167 @@ main {
     font-size: 0.78rem;
     background: var(--bg-elev);
     color: var(--text);
-    min-width: 120px;
+    min-width: 140px;
     outline: none;
 }
 .tag-add-form input:focus { border-color: var(--brand-primary); }
+
+.tag-add-x {
+    border: none;
+    background: transparent;
+    color: var(--text-muted);
+    padding: 0;
+    line-height: 1;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    font-size: 1rem;
+}
+.tag-add-x:hover { color: #d92d20; }
+
+/* --- Wiki content rendering ------------------------------------ */
+.wiki-content {
+    max-width: 880px;
+    line-height: 1.65;
+    color: var(--text);
+}
+.wiki-content h1 { font-size: 1.75rem; margin: 1.5rem 0 0.75rem; }
+.wiki-content h2 { font-size: 1.4rem;  margin: 1.5rem 0 0.5rem; border-bottom: 1px solid var(--border); padding-bottom: 0.25rem; }
+.wiki-content h3 { font-size: 1.2rem;  margin: 1.25rem 0 0.5rem; }
+.wiki-content h4 { font-size: 1.05rem; margin: 1rem 0 0.5rem; color: var(--text-muted); }
+.wiki-content p, .wiki-content ul, .wiki-content ol { margin-bottom: 1rem; }
+.wiki-content blockquote {
+    border-left: 4px solid var(--border-strong);
+    padding: 0.4rem 1rem;
+    margin: 1rem 0;
+    color: var(--text-muted);
+    background: var(--bg-subtle);
+    border-radius: 0 4px 4px 0;
+}
+.wiki-content code {
+    background: var(--bg-subtle);
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+.wiki-content pre {
+    background: var(--bg-subtle);
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    overflow-x: auto;
+}
+.wiki-content pre code { background: transparent; padding: 0; }
+.wiki-content table {
+    width: auto;
+    border-collapse: collapse;
+    margin: 1rem 0;
+}
+.wiki-content table th, .wiki-content table td {
+    border: 1px solid var(--border);
+    padding: 0.4rem 0.75rem;
+}
+.wiki-content table th { background: var(--bg-subtle); }
+.wiki-content img { max-width: 100%; height: auto; }
+.wiki-content hr { border: 0; border-top: 1px solid var(--border); margin: 1.5rem 0; }
+.wiki-content a { color: var(--brand-primary); }
+
+/* EasyMDE / CodeMirror — dark theme override
+   EasyMDE-CSS lädt via CDN nach site.css → wir brauchen !important
+   damit unsere Variablen-basierten Farben gewinnen. */
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror {
+    background: var(--bg-elev) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-cursor {
+    border-left-color: var(--text) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-selected,
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-focused .CodeMirror-selected,
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-line::selection,
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-line ::selection {
+    background: rgba(120, 160, 220, 0.35) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-gutters {
+    background: var(--bg-subtle) !important;
+    border-color: var(--border) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-linenumber {
+    color: var(--text-muted) !important;
+}
+/* Markdown-Syntax-Hervorhebung im Editor */
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-header,
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-strong { color: #ffffff !important; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-em { color: #c9d1d9 !important; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-link,
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-url { color: #79b8ff !important; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-quote { color: #9ecbff !important; font-style: italic; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-keyword,
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-tag { color: #ff7b72 !important; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-comment { color: #8b949e !important; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-string { color: #a5d6ff !important; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-variable-2,
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-variable-3 { color: #d2a8ff !important; }
+[data-bs-theme="dark"] .EasyMDEContainer .cm-s-easymde .cm-formatting { color: var(--text-muted) !important; }
+
+/* Toolbar */
+[data-bs-theme="dark"] .EasyMDEContainer .editor-toolbar {
+    background: var(--bg-subtle) !important;
+    border-color: var(--border) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .editor-toolbar button,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-toolbar i.separator {
+    color: var(--text) !important;
+    border-color: transparent !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .editor-toolbar button:hover,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-toolbar button.active {
+    background: var(--bg-hover) !important;
+    border-color: var(--border) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .editor-toolbar.fullscreen {
+    background: var(--bg-subtle) !important;
+}
+
+/* Statusleiste unten */
+[data-bs-theme="dark"] .EasyMDEContainer .editor-statusbar {
+    color: var(--text-muted) !important;
+}
+
+/* Preview & Side-by-Side */
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-side {
+    background: var(--bg-elev) !important;
+    color: var(--text) !important;
+    border-color: var(--border) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-active-side,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-active {
+    background: var(--bg-elev) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview pre,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview code,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-side pre,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-side code {
+    background: var(--bg-subtle) !important;
+    color: var(--text) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview blockquote,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-side blockquote {
+    border-left-color: var(--border-strong) !important;
+    background: var(--bg-subtle) !important;
+    color: var(--text-muted) !important;
+}
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview a,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-side a {
+    color: #79b8ff !important;
+}
+
+/* Fullscreen-Modus: Body bekommt Klasse, Container überlagert komplett */
+[data-bs-theme="dark"] .EasyMDEContainer .CodeMirror-fullscreen,
+[data-bs-theme="dark"] .EasyMDEContainer .editor-preview-side {
+    background: var(--bg) !important;
+}
 
 /* --- Customer detail header + tabs -------------------------------- */
 .customer-header {

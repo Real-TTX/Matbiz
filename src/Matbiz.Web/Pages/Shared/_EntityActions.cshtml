@@ -1,0 +1,46 @@
+@inject IEnumerable<Matbiz.Web.Shared.Actions.IEntityActionProvider> ActionProviders
+@model Matbiz.Web.Shared.Actions.EntityActionContext
+@*
+    Reusable partial: rendert alle registrierten Aktionen für einen Entity-Context
+    als Dropdown-Button-Group. Verbraucher (Contact/Company-Detail) braucht
+    nichts über die einzelnen Module zu wissen — die Aktionen kommen aus DI.
+*@
+@{
+    var all = new List<Matbiz.Web.Shared.Actions.EntityAction>();
+    foreach (var p in ActionProviders)
+    {
+        all.AddRange(await p.GetAsync(Model));
+    }
+    all = all.OrderBy(a => a.SortOrder).ToList();
+}
+
+@if (all.Count > 0)
+{
+    <div class="dropdown d-inline">
+        <button class="btn btn-outline-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+            <i class="bi bi-plus-circle"></i> Anlegen
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end">
+            @{
+                string? lastGroup = "__init";
+            }
+            @foreach (var a in all)
+            {
+                if (a.Group != lastGroup)
+                {
+                    if (lastGroup != "__init") { <li><hr class="dropdown-divider" /></li> }
+                    if (!string.IsNullOrEmpty(a.Group))
+                    {
+                        <li><h6 class="dropdown-header">@a.Group</h6></li>
+                    }
+                    lastGroup = a.Group;
+                }
+                <li>
+                    <a class="dropdown-item" href="@a.Url" title="@a.Tooltip">
+                        <i class="bi @a.Icon me-1"></i> @a.Label
+                    </a>
+                </li>
+            }
+        </ul>
+    </div>
+}

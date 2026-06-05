@@ -1,27 +1,30 @@
 @model Matbiz.Web.Pages.Customers.DetailModel
-@{ var c = Model.Customer!; }
+@using Matbiz.Web.Modules.CustomFields.Models
+@{
+    var c = Model.Customer!;
+    var sectionId = Model.ActiveSectionId;
+    var defsAll = Model.ActiveTab == "felder"
+        ? Model.Definitions.Where(d => d.SectionId is null).ToList()
+        : Model.Definitions.Where(d => d.SectionId == sectionId).ToList();
+    var fileDefs = defsAll.Where(d => d.Type == CustomFieldType.File).ToList();
+    var otherDefs = defsAll.Where(d => d.Type != CustomFieldType.File).ToList();
+}
 
-@if (Model.Definitions.Count == 0)
+@if (defsAll.Count == 0)
 {
     <div class="alert alert-info">
-        Keine eigenen Felder definiert. <a href="/Customers/Fields">Felder anlegen →</a>
+        Keine Felder in dieser Sektion. <a href="/Customers/Fields">Felder verwalten →</a>
     </div>
 }
 else
 {
-    @* "File"-Typ läuft über eigene Form pro Feld (multipart). Andere Typen
-       teilen sich die Sammel-Form unten. *@
-    var fileDefs = Model.Definitions.Where(d => d.Type == CustomFieldType.File).ToList();
-    var otherDefs = Model.Definitions.Where(d => d.Type != CustomFieldType.File).ToList();
-
     @foreach (var def in fileDefs)
     {
-        var current = c.CustomFieldValues.FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.Value;
-        var hasFile = Guid.TryParse(current, out var fileId) && Model.CustomFieldFiles.TryGetValue(fileId, out var file);
+        var current = Model.CustomFieldValueMap.GetValueOrDefault(def.Id);
         <div class="row g-3 mb-3" style="max-width: 800px;">
             <div class="col-md-12">
                 <label class="form-label">@def.Label @(def.Required ? "*" : "")</label>
-                @if (hasFile && Guid.TryParse(current, out var fid) && Model.CustomFieldFiles.TryGetValue(fid, out var f))
+                @if (Guid.TryParse(current, out var fid) && Model.CustomFieldFiles.TryGetValue(fid, out var f))
                 {
                     <div class="file-field">
                         <a class="file-field-name" href="/files/@f.Id" target="_blank">
@@ -62,7 +65,7 @@ else
         <form method="post" asp-page-handler="Felder" class="row g-3" style="max-width: 800px;">
             @foreach (var def in otherDefs)
             {
-                var current = c.CustomFieldValues.FirstOrDefault(v => v.FieldDefinitionId == def.Id)?.Value;
+                var current = Model.CustomFieldValueMap.GetValueOrDefault(def.Id);
                 <div class="col-md-6">
                     <label class="form-label">@def.Label @(def.Required ? "*" : "")</label>
                     @switch (def.Type)
@@ -80,6 +83,15 @@ else
                             break;
                         case CustomFieldType.Date:
                             <input type="date" class="form-control" name="CustomValues[@def.Id]" value="@current" />
+                            break;
+                        case CustomFieldType.ValueList:
+                            <select class="form-select" name="CustomValues[@def.Id]">
+                                <option value="">— bitte wählen —</option>
+                                @foreach (var opt in def.GetOptions())
+                                {
+                                    <option value="@opt" selected="@(current == opt)">@opt</option>
+                                }
+                            </select>
                             break;
                         default:
                             <input class="form-control" name="CustomValues[@def.Id]" value="@current" />

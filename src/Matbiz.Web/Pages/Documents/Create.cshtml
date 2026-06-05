@@ -1,0 +1,45 @@
+@page
+@model Matbiz.Web.Pages.Documents.CreateModel
+@using Matbiz.Web.Pages.Shared
+@{ ViewData["Title"] = "Neuer " + Model.TypeLabel; }
+
+<h1>Neuer @Model.TypeLabel</h1>
+<p class="text-muted">Wähle den Empfänger — anschließend kannst du Positionen einpflegen.</p>
+
+<form method="post" class="row g-3" style="max-width: 700px;">
+    <input type="hidden" asp-for="Type" />
+    <div asp-validation-summary="ModelOnly" class="text-danger small col-12"></div>
+
+    <div class="col-md-6">
+        <label class="form-label">Kontakt</label>
+        <partial name="_EntityPicker" model="@(new EntityPickerVm(
+            DialogId: "customer-picker",
+            InputName: "CustomerId",
+            SelectedId: null,
+            SelectedLabel: null,
+            SearchUrl: "/Customers/Picker",
+            EmptyText: "Kein Kontakt gewählt",
+            DialogTitle: "Kontakt wählen",
+            PlaceholderText: "Suche Name oder Firma…",
+            IconClass: "bi-person-vcard"))" />
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Firma (alternativ)</label>
+        <partial name="_EntityPicker" model="@(new EntityPickerVm(
+            DialogId: "company-picker",
+            InputName: "CompanyId",
+            SelectedId: null,
+            SelectedLabel: null,
+            SearchUrl: "/Companies/Picker",
+            EmptyText: "Keine Firma gewählt",
+            DialogTitle: "Firma wählen",
+            PlaceholderText: "Suche Firmenname…",
+            IconClass: "bi-building"))" />
+        <div class="form-text">Wenn beides leer: bitte Kontakt wählen.</div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Anlegen</button>
+        <a class="btn btn-secondary" href="/Documents"><i class="bi bi-x-lg"></i> Abbrechen</a>
+    </div>
+</form>

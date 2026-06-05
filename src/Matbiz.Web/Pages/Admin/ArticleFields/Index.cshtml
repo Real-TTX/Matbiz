@@ -1,0 +1,113 @@
+@page
+@model Matbiz.Web.Pages.Admin.ArticleFields.IndexModel
+@{ ViewData["Title"] = "Artikelfelder"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Artikelfelder</h1>
+    @if (Model.Tab == "sektionen")
+    {
+        <a class="btn btn-primary" href="/Admin/ArticleFields/EditSection"><i class="bi bi-plus-lg"></i> Neue Sektion</a>
+    }
+    else
+    {
+        <a class="btn btn-primary" href="/Admin/ArticleFields/EditField"><i class="bi bi-plus-lg"></i> Neues Feld</a>
+    }
+</div>
+
+<p class="text-muted">Eigene Felder erscheinen auf der Artikel-Bearbeiten-Seite — Sektionen gruppieren sie zu Blöcken.</p>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(Model.Tab == "felder" ? "active" : "")" href="/Admin/ArticleFields?Tab=felder">
+            <i class="bi bi-sliders"></i> Felder
+            <span class="badge bg-secondary-subtle text-secondary ms-1">@Model.Items.Count</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.Tab == "sektionen" ? "active" : "")" href="/Admin/ArticleFields?Tab=sektionen">
+            <i class="bi bi-folder"></i> Sektionen
+            <span class="badge bg-secondary-subtle text-secondary ms-1">@Model.Sections.Count</span>
+        </a>
+    </li>
+</ul>
+
+@if (Model.Tab == "sektionen")
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Felder</th>
+                <th>Sortierung</th>
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Sections.Count == 0)
+            {
+                <tr class="empty-row"><td colspan="4">Keine Daten</td></tr>
+            }
+            else
+            {
+                @foreach (var s in Model.Sections)
+                {
+                    <tr>
+                        <td><i class="bi bi-folder text-muted me-2"></i><strong>@s.Name</strong></td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">@s.Fields.Count</span></td>
+                        <td>@s.SortOrder</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" href="/Admin/ArticleFields/EditSection/@s.Id"><i class="bi bi-pencil"></i></a>
+                            <form method="post" asp-page-handler="DeleteSection" asp-route-id="@s.Id" class="d-inline"
+                                  onsubmit="return confirm('Sektion löschen?');">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Schlüssel</th>
+                <th>Bezeichnung</th>
+                <th>Typ</th>
+                <th>Sektion</th>
+                <th>Pflicht</th>
+                <th>Sortierung</th>
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody>
+            @if (Model.Items.Count == 0)
+            {
+                <tr class="empty-row"><td colspan="7">Keine Daten</td></tr>
+            }
+            else
+            {
+                @foreach (var f in Model.Items)
+                {
+                    <tr>
+                        <td><code>@f.Key</code></td>
+                        <td><a class="text-decoration-none text-reset" href="/Admin/ArticleFields/EditField/@f.Id"><strong>@f.Label</strong></a></td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">@f.Type</span></td>
+                        <td class="text-muted">@(f.Section?.Name ?? "— Eigene Felder —")</td>
+                        <td>@(f.Required ? "ja" : "")</td>
+                        <td>@f.SortOrder</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" href="/Admin/ArticleFields/EditField/@f.Id"><i class="bi bi-pencil"></i></a>
+                            <form method="post" asp-page-handler="DeleteField" asp-route-id="@f.Id" class="d-inline"
+                                  onsubmit="return confirm('Feld „@f.Label\" löschen?');">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+}

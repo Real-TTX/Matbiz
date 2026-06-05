@@ -1,0 +1,91 @@
+@page "/Admin/NumberRanges/Edit/{Id:guid}"
+@model Matbiz.Web.Pages.Admin.NumberRanges.EditModel
+@{ ViewData["Title"] = Model.Input.Label; }
+
+<h1>Nummernkreis: @Model.Input.Label <small class="text-muted">(@Model.Input.Key)</small></h1>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+
+<div class="row">
+    <div class="col-lg-7">
+        <h3 class="mt-3">Format</h3>
+        <form method="post" asp-page-handler="Save" class="row g-3">
+            <input type="hidden" asp-for="Input.Key" />
+            <input type="hidden" asp-for="Input.CurrentValue" />
+            <input type="hidden" asp-for="Input.CurrentYear" />
+
+            <div class="col-md-6">
+                <label class="form-label">Bezeichnung</label>
+                <input class="form-control" asp-for="Input.Label" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Präfix</label>
+                <input class="form-control" asp-for="Input.Prefix" placeholder="z.B. RE" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Trenner</label>
+                <input class="form-control" asp-for="Input.Separator" placeholder="-" />
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label">Stellen</label>
+                <input type="number" min="1" max="10" class="form-control" asp-for="Input.Digits" />
+                <div class="form-text">z.B. 4 → 0042</div>
+            </div>
+            <div class="col-md-9 d-flex align-items-end">
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" asp-for="Input.IncludeYear" id="iy" />
+                    <label class="form-check-label" for="iy">Jahr einbauen (mit automatischem Reset zum 1.1.)</label>
+                </div>
+            </div>
+
+            <div class="col-12">
+                <div class="alert alert-info py-2">
+                    <strong>Nächste Nummer:</strong>
+                    <code class="ms-2">@Model.PreviewNumber</code>
+                </div>
+            </div>
+
+            <div class="d-flex gap-2 mt-3">
+                <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Format speichern</button>
+                <a class="btn btn-secondary" href="/Admin/NumberRanges"><i class="bi bi-x-lg"></i> Zurück</a>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-5">
+        <h3 class="mt-3">Zählerstand setzen</h3>
+        <div class="alert alert-warning py-2">
+            <i class="bi bi-exclamation-triangle"></i>
+            Manuelles Setzen kann zu Lücken oder Duplikaten führen — nur nutzen wenn nötig (z.B. Migration aus Altsystem).
+        </div>
+        <form method="post" asp-page-handler="Reset" class="row g-3">
+            <input type="hidden" asp-for="Input.Key" />
+            <input type="hidden" asp-for="Input.Label" />
+            <input type="hidden" asp-for="Input.Prefix" />
+            <input type="hidden" asp-for="Input.IncludeYear" />
+            <input type="hidden" asp-for="Input.Separator" />
+            <input type="hidden" asp-for="Input.Digits" />
+
+            <div class="col-md-6">
+                <label class="form-label">Aktueller Zählerstand</label>
+                <input type="number" min="0" class="form-control" asp-for="ResetTo" />
+                <div class="form-text">Nächste Vergabe wird @(@Model.Input.CurrentValue + 1) sein.</div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Jahr</label>
+                <input type="number" class="form-control" asp-for="ResetYear" placeholder="(leer = aktuelles Jahr)" />
+            </div>
+
+            <div>
+                <button type="submit" class="btn btn-outline-warning"
+                        onclick="return confirm('Zählerstand wirklich überschreiben?');">
+                    <i class="bi bi-arrow-counterclockwise"></i> Zähler setzen
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

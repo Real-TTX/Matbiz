@@ -1,0 +1,80 @@
+@page
+@model Matbiz.Web.Pages.Statistics.IndexModel
+@{ ViewData["Title"] = "Statistik"; }
+
+<h1>Statistik</h1>
+
+@if (Model.Providers.Count == 0)
+{
+    <div class="alert alert-info">Noch keine Statistik-Provider registriert.</div>
+    return;
+}
+
+<ul class="nav nav-tabs mb-3">
+    @foreach (var p in Model.Providers)
+    {
+        var active = p.ModuleKey == Model.ActiveProvider?.ModuleKey;
+        <li class="nav-item">
+            <a class="nav-link @(active ? "active" : "")" href="?tab=@p.ModuleKey">
+                <i class="bi @p.Icon"></i> @p.DisplayName
+            </a>
+        </li>
+    }
+</ul>
+
+@if (Model.ActiveResult is not null)
+{
+    @* KPI-Kacheln *@
+    <div class="row g-3 mb-4">
+        @foreach (var t in Model.ActiveResult.Tiles)
+        {
+            var color = t.Color switch
+            {
+                "success" => "bg-success-subtle text-success",
+                "warning" => "bg-warning-subtle text-warning",
+                "danger"  => "bg-danger-subtle text-danger",
+                "primary" => "bg-primary-subtle text-primary",
+                _         => "bg-secondary-subtle text-secondary"
+            };
+            <div class="col-md-3 col-sm-6">
+                <div class="kpi-tile">
+                    @if (!string.IsNullOrEmpty(t.Icon))
+                    {
+                        <div class="kpi-icon @color"><i class="bi @t.Icon"></i></div>
+                    }
+                    <div>
+                        <div class="kpi-value">@t.Value</div>
+                        <div class="kpi-label">@t.Label</div>
+                        @if (!string.IsNullOrEmpty(t.Trend))
+                        {
+                            <div class="kpi-trend small text-muted">@t.Trend</div>
+                        }
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    @if (Model.ActiveResult.Tables is { Count: > 0 })
+    {
+        @foreach (var tbl in Model.ActiveResult.Tables)
+        {
+            <h3 class="mt-4">@tbl.Title</h3>
+            <table class="table table-hover align-middle">
+                <thead>
+                    <tr>
+                        @foreach (var h in tbl.Headers) { <th>@h</th> }
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in tbl.Rows)
+                    {
+                        <tr>
+                            @foreach (var cell in row) { <td>@cell</td> }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+}

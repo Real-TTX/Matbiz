@@ -1,0 +1,287 @@
+@page "/Documents/Edit/{Id:guid}"
+@model Matbiz.Web.Pages.Documents.EditModel
+@using Matbiz.Web.Modules.Documents.Models
+@using Matbiz.Web.Modules.Documents.Services
+@using Matbiz.Web.Pages.Shared
+@{
+    var d = Model.Doc!;
+    ViewData["Title"] = $"{Model.TypeLabel} {d.Number}";
+    Matbiz.Web.Shared.BreadcrumbsHelper.Set(ViewData,
+        new("Belege", "/Documents"),
+        new(Model.TypeLabel + " " + d.Number));
+}
+
+<div class="d-flex align-items-start mb-3">
+    <div class="me-auto">
+        <h1 class="mb-0">@Model.TypeLabel <code>@d.Number</code></h1>
+        <div class="text-muted small mt-1">
+            <span class="badge @Model.StatusBadgeClass">@Model.StatusLabel</span>
+            @if (d.SourceDocument is not null)
+            {
+                <span class="ms-2"><i class="bi bi-arrow-return-right"></i> aus
+                    <a class="text-decoration-none" href="/Documents/Edit/@d.SourceDocument.Id">@DocumentService.TypeLabel(d.SourceDocument.Type) @d.SourceDocument.Number</a>
+                </span>
+            }
+        </div>
+    </div>
+
+    <a class="btn btn-outline-secondary me-1" href="/documents/@d.Id/pdf" target="_blank" title="PDF anzeigen">
+        <i class="bi bi-file-earmark-pdf"></i> PDF
+    </a>
+    <a class="btn btn-outline-secondary me-1" href="/documents/@d.Id/pdf?download=true" title="PDF herunterladen">
+        <i class="bi bi-download"></i>
+    </a>
+    @if (d.Type == DocumentType.Invoice || d.Type == DocumentType.CreditNote)
+    {
+        <div class="dropdown d-inline me-1">
+            <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-file-earmark-code"></i> ZUGFeRD
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                <li><a class="dropdown-item" href="/documents/@d.Id/pdf?hybrid=true&download=true" target="_blank">
+                    <i class="bi bi-file-earmark-pdf"></i> Hybrid-PDF herunterladen (PDF + XML eingebettet)
+                </a></li>
+                <li><a class="dropdown-item" href="/documents/@d.Id/xrechnung">
+                    <i class="bi bi-filetype-xml"></i> Nur XML (XRechnung)
+                </a></li>
+            </ul>
+        </div>
+    }
+
+    @if (d.Status == DocumentStatus.Cancelled)
+    {
+        <div class="badge bg-danger-subtle text-danger fs-6 me-1"><i class="bi bi-x-octagon"></i> Storniert · read-only</div>
+    }
+    else if (d.Status == DocumentStatus.Draft)
+    {
+        <form method="post" asp-page-handler="SetStatus" asp-route-status="@DocumentStatus.Sent" class="d-inline me-1">
+            <button class="btn btn-outline-success"><i class="bi bi-send"></i> Als versendet markieren</button>
+        </form>
+    }
+    else
+    {
+        <form method="post" asp-page-handler="SetStatus" asp-route-status="@DocumentStatus.Draft" class="d-inline me-1">
+            <button class="btn btn-outline-secondary"><i class="bi bi-pencil"></i> Zurück zu Entwurf</button>
+        </form>
+    }
+
+    @* Stornieren: nur für versendete/bezahlte Belege — Storno ist die korrekte
+       Form (statt Löschen), weil Belege buchhalterisch nachvollziehbar bleiben müssen. *@
+    @if (d.Status is DocumentStatus.Sent or DocumentStatus.PartiallyPaid or DocumentStatus.Paid or DocumentStatus.Accepted)
+    {
+        <form method="post" asp-page-handler="SetStatus" asp-route-status="@DocumentStatus.Cancelled" class="d-inline me-1"
+              onsubmit="return confirm('Beleg @d.Number wirklich stornieren? Der Beleg bleibt erhalten und ist als „Storniert\" markiert.');">
+            <button class="btn btn-outline-danger"><i class="bi bi-x-octagon"></i> Stornieren</button>
+        </form>
+    }
+
+    @if (Model.NextTypes.Length > 0)
+    {
+        <div class="dropdown d-inline">
+            <button class="btn btn-primary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                <i class="bi bi-arrow-right-circle"></i> Umwandeln
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end">
+                @foreach (var nt in Model.NextTypes)
+                {
+                    <li>
+                        <form method="post" asp-page-handler="Convert" asp-route-targetType="@nt" class="m-0">
+                            <button type="submit" class="dropdown-item">→ @DocumentService.TypeLabel(nt)</button>
+                        </form>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+</div>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+@if (TempData["StatusError"] is string err)
+{
+    <div class="alert alert-warning py-2"><i class="bi bi-exclamation-triangle"></i> @err</div>
+}
+
+<!-- KOPFDATEN -->
+<form method="post" asp-page-handler="SaveHeader" class="card mb-3">
+    <div class="card-body row g-3">
+        <div class="col-md-6">
+            <label class="form-label">Empfänger</label>
+            <input class="form-control" asp-for="CustomerNameSnapshot" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">Belegdatum</label>
+            <input type="date" class="form-control" asp-for="DocumentDate" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">@(d.Type == DocumentType.Invoice ? "Zahlungsziel" : "Gültig bis")</label>
+            <input type="date" class="form-control" asp-for="DueDate" />
+        </div>
+        <div class="col-12">
+            <label class="form-label">Empfängeradresse</label>
+            <textarea class="form-control" rows="3" asp-for="CustomerAddressSnapshot"></textarea>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Kopftext (über Positionen)</label>
+            <textarea class="form-control" rows="2" asp-for="HeaderText"></textarea>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Fußtext (unter Positionen)</label>
+            <textarea class="form-control" rows="2" asp-for="FooterText"></textarea>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Zahlungsbedingung</label>
+            <input class="form-control" asp-for="PaymentTerms" placeholder="z.B. Zahlbar binnen 14 Tagen netto." />
+        </div>
+
+        @* === ZUGFeRD / XRechnung Pflicht- und Zusatzfelder === *@
+        <div class="col-12 mt-2">
+            <details>
+                <summary class="text-muted small mb-2"><i class="bi bi-file-earmark-code"></i> ZUGFeRD / XRechnung — zusätzliche Felder</summary>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-3">
+                        <label class="form-label">Leistungsdatum</label>
+                        <input type="date" class="form-control" asp-for="ServiceDate" />
+                        <div class="form-text">≠ Belegdatum (BT-72)</div>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Währung</label>
+                        <input class="form-control" asp-for="CurrencyCode" maxlength="3" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Leitweg-ID (BT-10)</label>
+                        <input class="form-control" asp-for="BuyerReference" placeholder="für B2G XRechnung" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Bestellnummer Käufer (BT-13)</label>
+                        <input class="form-control" asp-for="BuyerOrderNumber" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">Vertragsnr (BT-12)</label>
+                        <input class="form-control" asp-for="ContractNumber" />
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">USt-ID des Käufers (BT-48)</label>
+                        <input class="form-control" asp-for="BuyerVatIdSnapshot" placeholder="DE…" />
+                    </div>
+                </div>
+            </details>
+        </div>
+
+        <div>
+            <button class="btn btn-primary"><i class="bi bi-check2"></i> Kopfdaten speichern</button>
+        </div>
+    </div>
+</form>
+
+<!-- POSITIONEN -->
+<h3>Positionen</h3>
+
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th style="width: 40px;">#</th>
+            <th>Bezeichnung</th>
+            <th style="width: 80px;">Menge</th>
+            <th style="width: 80px;">Einheit</th>
+            <th style="width: 110px;" class="text-end">Einzelpreis</th>
+            <th style="width: 80px;" class="text-end">Rabatt %</th>
+            <th style="width: 80px;" class="text-end">MwSt %</th>
+            <th style="width: 110px;" class="text-end">Summe netto</th>
+            <th style="width: 40px;"></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (d.Positions.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="9">Noch keine Positionen.</td></tr>
+        }
+        @foreach (var p in d.Positions.OrderBy(x => x.Position))
+        {
+            var fid = "fp-" + p.Id;
+            <tr>
+                <td>@p.Position</td>
+                <td>
+                    <div class="d-flex align-items-center gap-2">
+                        @if (p.Article?.ImageBytes is { Length: > 0 })
+                        {
+                            <img src="/articles/@p.Article.Id/image?v=@p.Article.ImageVersion" class="article-thumb" alt="" style="width: 28px; height: 28px;" />
+                        }
+                        else if (!string.IsNullOrEmpty(p.ArticleNumber))
+                        {
+                            <span class="article-thumb-placeholder" style="width: 28px; height: 28px;"><i class="bi bi-box small"></i></span>
+                        }
+                        <div class="flex-grow-1">
+                            @if (!string.IsNullOrEmpty(p.ArticleNumber))
+                            {
+                                <code class="text-muted small d-block">@p.ArticleNumber</code>
+                            }
+                            <input class="form-control form-control-sm" name="description" form="@fid" value="@p.Description" />
+                        </div>
+                    </div>
+                </td>
+                <td><input type="number" step="0.01" class="form-control form-control-sm text-end" name="quantity" form="@fid" value="@p.Quantity" /></td>
+                <td><input class="form-control form-control-sm" name="unit" form="@fid" value="@p.Unit" /></td>
+                <td><input type="number" step="0.01" class="form-control form-control-sm text-end" name="netPrice" form="@fid" value="@p.NetPrice" /></td>
+                <td><input type="number" step="0.01" min="0" max="100" class="form-control form-control-sm text-end" name="discountPercent" form="@fid" value="@p.DiscountPercent" /></td>
+                <td><input type="number" step="0.1" min="0" max="100" class="form-control form-control-sm text-end" name="taxRatePercent" form="@fid" value="@p.TaxRatePercent" /></td>
+                <td class="text-end"><strong>@p.NetTotal.ToString("N2") €</strong></td>
+                <td class="text-end text-nowrap">
+                    <button class="btn btn-sm btn-link text-success py-0" form="@fid" title="Speichern"><i class="bi bi-check2"></i></button>
+                    <button class="btn btn-sm btn-link text-danger py-0" form="del-@p.Id" title="Löschen"><i class="bi bi-trash"></i></button>
+                </td>
+            </tr>
+        }
+    </tbody>
+    <tfoot>
+        <tr>
+            <td colspan="7"></td>
+            <td class="text-end small text-muted">Netto-Summe</td>
+            <td class="text-end"><strong>@d.NetTotal.ToString("N2") €</strong></td>
+        </tr>
+        <tr>
+            <td colspan="7"></td>
+            <td class="text-end small text-muted">USt-Summe</td>
+            <td class="text-end">@d.TaxTotal.ToString("N2") €</td>
+        </tr>
+        <tr>
+            <td colspan="7"></td>
+            <td class="text-end"><strong>Brutto-Summe</strong></td>
+            <td class="text-end"><strong>@d.GrossTotal.ToString("N2") €</strong></td>
+        </tr>
+    </tfoot>
+</table>
+
+@* Forms außerhalb der Tabelle (sonst nicht valides HTML) — Inputs referenzieren per form="id". *@
+@foreach (var p in d.Positions)
+{
+    var fid = "fp-" + p.Id;
+    <form id="@fid" method="post" asp-page-handler="UpdatePosition" asp-route-posId="@p.Id"></form>
+    <form id="del-@p.Id" method="post" asp-page-handler="DeletePosition" asp-route-posId="@p.Id"
+          onsubmit="return confirm('Position löschen?');"></form>
+}
+
+@if (d.Status == DocumentStatus.Draft)
+{
+    <form method="post" asp-page-handler="AddPosition" class="row g-2 align-items-end mt-3" style="max-width: 700px;">
+        <div class="col-md-9">
+            <label class="form-label">Artikel suchen (leer = freie Position)</label>
+            <partial name="_EntityPicker" model="@(new EntityPickerVm(
+                DialogId: "article-picker",
+                InputName: "NewArticleId",
+                SelectedId: null,
+                SelectedLabel: null,
+                SearchUrl: "/Articles/Picker",
+                EmptyText: "Kein Artikel — freie Position",
+                DialogTitle: "Artikel wählen",
+                PlaceholderText: "Suche Nummer, Name, Kategorie…",
+                IconClass: "bi-box-seam"))" />
+        </div>
+        <div class="col-md-3">
+            <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i> Position hinzufügen</button>
+        </div>
+    </form>
+}
+

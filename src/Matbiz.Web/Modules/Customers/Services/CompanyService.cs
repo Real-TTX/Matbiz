@@ -43,6 +43,25 @@ public class CompanyService(ApplicationDbContext db, ICurrentUserAccessor curren
         await db.SaveChangesAsync(ct);
     }
 
+    public async Task UpdateHistoryAsync(Guid entryId, string newDetails, CancellationToken ct = default)
+    {
+        var h = await db.CompanyHistoryEntries.FindAsync([entryId], ct);
+        if (h is null) return;
+        h.Details = newDetails;
+        h.EditedAt = DateTime.UtcNow;
+        var ctx = await currentUser.GetAsync();
+        h.EditedByUserId = ctx.UserId;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteHistoryAsync(Guid entryId, CancellationToken ct = default)
+    {
+        var h = await db.CompanyHistoryEntries.FindAsync([entryId], ct);
+        if (h is null) return;
+        db.CompanyHistoryEntries.Remove(h);
+        await db.SaveChangesAsync(ct);
+    }
+
     /// <summary>Returns history entries for the company, optionally merged with
     /// entries from all its linked contacts. Each merged entry carries a label
     /// pointing at the source contact so the UI can show provenance.</summary>

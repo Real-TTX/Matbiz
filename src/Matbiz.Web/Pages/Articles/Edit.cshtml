@@ -1,0 +1,174 @@
+@page "/Articles/Edit/{Id:guid?}"
+@model Matbiz.Web.Pages.Articles.EditModel
+@using Matbiz.Web.Modules.Articles.Models
+@using Matbiz.Web.Modules.CustomFields.Models
+@{ ViewData["Title"] = Model.IsNew ? "Neuer Artikel" : Model.Input.Name; }
+
+<h1>@(Model.IsNew ? "Neuer Artikel" : Model.Input.Name)</h1>
+
+<form method="post" enctype="multipart/form-data" style="max-width: 1100px;">
+    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+    <div class="row g-3">
+        <!-- Linke Spalte: Artikel-Bild -->
+        <div class="col-md-3">
+            <label class="form-label">Artikel-Bild</label>
+            <div class="article-image-box">
+                @if (!Model.IsNew && Model.Input.ImageBytes is { Length: > 0 })
+                {
+                    <img src="/articles/@Model.Input.Id/image?v=@Model.Input.ImageVersion" alt="Bild" class="article-image-preview" />
+                }
+                else
+                {
+                    <div class="article-image-placeholder text-muted">
+                        <i class="bi bi-image"></i>
+                        <div class="small mt-1">Kein Bild</div>
+                    </div>
+                }
+            </div>
+            <input asp-for="Image" type="file" class="form-control form-control-sm mt-2" accept="image/png,image/jpeg,image/webp" />
+            <div class="form-text">PNG / JPEG / WebP — max. 4 MB.</div>
+            @if (!Model.IsNew && Model.Input.ImageBytes is { Length: > 0 })
+            {
+                <button type="submit" asp-page-handler="ClearImage" class="btn btn-sm btn-outline-danger mt-1"
+                        onclick="return confirm('Bild entfernen?');">
+                    <i class="bi bi-trash"></i> Bild entfernen
+                </button>
+            }
+        </div>
+
+        <!-- Rechte Spalte: Stammdaten + Preise -->
+        <div class="col-md-9">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Nummer</label>
+                    @if (Model.IsNew)
+                    {
+                        <input class="form-control" value="@Model.PreviewNumber" disabled />
+                        <div class="form-text">Wird beim Speichern vergeben.</div>
+                    }
+                    else
+                    {
+                        <input class="form-control" value="@Model.Input.Number" disabled />
+                    }
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Bezeichnung *</label>
+                    <input class="form-control" asp-for="Input.Name" required />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Kategorie</label>
+                    <input class="form-control" asp-for="Input.Category" />
+                </div>
+                <div class="col-12">
+                    <label class="form-label">Beschreibung</label>
+                    <textarea class="form-control" asp-for="Input.Description" rows="3"></textarea>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Typ</label>
+                    <select class="form-select" asp-for="Input.Type">
+                        <option value="@ArticleType.Product">Produkt</option>
+                        <option value="@ArticleType.Service">Dienstleistung</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Einheit</label>
+                    <input class="form-control" asp-for="Input.Unit" list="unit-list" />
+                    <datalist id="unit-list">
+                        <option value="Stück" /><option value="h" /><option value="Tag" />
+                        <option value="Pauschal" /><option value="m" /><option value="m²" />
+                        <option value="kg" /><option value="l" />
+                    </datalist>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Netto-Preis (€) *</label>
+                    <input type="number" step="0.01" min="0" class="form-control" asp-for="Input.NetPrice" required />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Einkauf (€)</label>
+                    <input type="number" step="0.01" min="0" class="form-control" asp-for="Input.PurchasePrice" />
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Steuersatz *</label>
+                    <select class="form-select" asp-for="Input.TaxRateId" required>
+                        <option value="">— wählen —</option>
+                        @foreach (var t in Model.AllTaxRates)
+                        {
+                            <option value="@t.Id">@t.Name (@t.Percent.ToString("0.#") %)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label">Sortierung</label>
+                    <input type="number" class="form-control" asp-for="Input.SortOrder" />
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" asp-for="Input.IsActive" id="active" />
+                        <label class="form-check-label" for="active">Aktiv</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @{
+        var sectionGroups = Model.FieldSections
+            .Where(s => s.Fields.Count > 0)
+            .OrderBy(s => s.SortOrder)
+            .Select(s => (Title: s.Name, Defs: Model.FieldDefinitions.Where(d => d.SectionId == s.Id).OrderBy(d => d.SortOrder).ToList()))
+            .ToList();
+        if (Model.HasUnsectionedFields)
+            sectionGroups.Add(("Eigene Felder", Model.FieldDefinitions.Where(d => d.SectionId is null).OrderBy(d => d.SortOrder).ToList()));
+    }
+
+    @foreach (var grp in sectionGroups)
+    {
+        <h3 class="mt-4"><i class="bi bi-sliders me-2"></i>@grp.Title</h3>
+        <div class="row g-3">
+            @foreach (var def in grp.Defs)
+            {
+                var current = Model.CustomValues.GetValueOrDefault(def.Id);
+                <div class="col-md-6">
+                    <label class="form-label">@def.Label @(def.Required ? "*" : "")</label>
+                    @switch (def.Type)
+                    {
+                        case CustomFieldType.Boolean:
+                            <div class="form-check form-switch">
+                                <input type="checkbox" class="form-check-input" name="CustomValues[@def.Id]" value="true" @(current == "true" ? "checked" : "") />
+                            </div>
+                            break;
+                        case CustomFieldType.LongText:
+                            <textarea class="form-control" rows="3" name="CustomValues[@def.Id]">@current</textarea>
+                            break;
+                        case CustomFieldType.Number:
+                            <input type="number" step="any" class="form-control" name="CustomValues[@def.Id]" value="@current" />
+                            break;
+                        case CustomFieldType.Date:
+                            <input type="date" class="form-control" name="CustomValues[@def.Id]" value="@current" />
+                            break;
+                        case CustomFieldType.ValueList:
+                            <select class="form-select" name="CustomValues[@def.Id]">
+                                <option value="">— bitte wählen —</option>
+                                @foreach (var opt in def.GetOptions())
+                                {
+                                    <option value="@opt" selected="@(current == opt)">@opt</option>
+                                }
+                            </select>
+                            break;
+                        default:
+                            <input class="form-control" name="CustomValues[@def.Id]" value="@current" />
+                            break;
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    <div class="d-flex gap-2 mt-4">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <a class="btn btn-secondary" href="/Articles"><i class="bi bi-x-lg"></i> Abbrechen</a>
+    </div>
+</form>

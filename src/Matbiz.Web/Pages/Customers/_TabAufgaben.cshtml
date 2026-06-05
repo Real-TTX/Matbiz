@@ -36,7 +36,7 @@ else
                 </form>
 
                 <div class="task-body">
-                    <a class="text-decoration-none text-reset" href="/Tasks/@t.Id">
+                    <a class="text-decoration-none text-reset" href="/Tasks/Edit/@t.Id">
                         <div class="task-title">@t.Title</div>
                         <div class="task-meta">
                             @switch (t.Priority)
@@ -63,7 +63,7 @@ else
                     </a>
                 </div>
 
-                <a class="btn btn-link text-muted" href="/Tasks/@t.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                <a class="btn btn-link text-muted" href="/Tasks/Edit/@t.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
             </li>
         }
     </ul>

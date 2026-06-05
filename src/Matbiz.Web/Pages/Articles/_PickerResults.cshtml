@@ -1,0 +1,48 @@
+@model Matbiz.Web.Pages.Articles.PickerModel
+
+@if (Model.Items.Count == 0)
+{
+    <div class="text-muted text-center py-4">
+        <i class="bi bi-search"></i>
+        @(string.IsNullOrEmpty(Model.Query) ? " Tippe zum Suchen…" : $" Keine Treffer für „{Model.Query}\".")
+    </div>
+}
+else
+{
+    <ul class="picker-list">
+        @foreach (var a in Model.Items.Take(50))
+        {
+            var label = $"{a.Number} · {a.Name} ({a.NetPrice.ToString("N2")} €)";
+            <li>
+                <button type="button" class="picker-row"
+                        data-id="@a.Id" data-label="@label"
+                        onclick="entityPicker.select(this)">
+                    <div class="picker-avatar" style="background: var(--bg-subtle);">
+                        @if (a.ImageBytes is { Length: > 0 })
+                        {
+                            <img src="/articles/@a.Id/image?v=@a.ImageVersion" alt="" style="width:100%; height:100%; object-fit:cover; border-radius:50%;" />
+                        }
+                        else
+                        {
+                            <i class="bi bi-box text-muted"></i>
+                        }
+                    </div>
+                    <div class="picker-body">
+                        <div class="picker-name"><code class="me-1">@a.Number</code> @a.Name</div>
+                        @if (!string.IsNullOrEmpty(a.Category))
+                        {
+                            <div class="picker-sub"><i class="bi bi-tag"></i> @a.Category</div>
+                        }
+                        <div class="picker-sub small">
+                            <span><i class="bi bi-cash"></i> @a.NetPrice.ToString("N2") € / @a.Unit</span>
+                        </div>
+                    </div>
+                </button>
+            </li>
+        }
+    </ul>
+    @if (Model.Items.Count > 50)
+    {
+        <div class="text-muted small text-center py-2">@(Model.Items.Count - 50) weitere — Suche verfeinern.</div>
+    }
+}

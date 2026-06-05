@@ -1,4 +1,4 @@
-@page "/Tasks/{Id:guid?}"
+@page "/Tasks/Edit/{Id:guid?}"
 @model Matbiz.Web.Pages.Tasks.EditModel
 @using TaskStatus = Matbiz.Web.Modules.Tasks.Models.TaskStatus
 @{ ViewData["Title"] = Model.IsNew ? "Neue Aufgabe" : Model.Input.Title; }
@@ -110,7 +110,7 @@
         <a class="btn btn-secondary" href="/Tasks"><i class="bi bi-x-lg"></i> Abbrechen</a>
         @if (!Model.IsNew)
         {
-            <button type="submit" formaction="?id=@Model.Id&handler=Delete" class="btn btn-outline-danger ms-auto"
+            <button type="submit" formaction="/Tasks/Edit/@Model.Id?handler=Delete" class="btn btn-outline-danger ms-auto"
                     onclick="return confirm('Aufgabe wirklich löschen?');">
                 <i class="bi bi-trash"></i> Löschen
             </button>

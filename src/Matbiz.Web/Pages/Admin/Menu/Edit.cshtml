@@ -1,0 +1,151 @@
+@page "/Admin/Menu/Edit/{Id:guid?}"
+@model Matbiz.Web.Pages.Admin.Menu.EditModel
+@using Matbiz.Web.Modules.CustomMenu.Models
+@{ ViewData["Title"] = Model.IsNew ? "Neuer Menü-Eintrag" : "Eintrag bearbeiten"; }
+
+<h1>@(Model.IsNew ? "Neuer Menü-Eintrag" : "Eintrag bearbeiten")</h1>
+
+<form method="post" class="row g-3" style="max-width: 1000px;">
+    <div asp-validation-summary="ModelOnly" class="text-danger small col-12"></div>
+
+    <div class="col-md-1">
+        <label class="form-label">Icon</label>
+        <button type="button" class="icon-picker-btn form-control text-center" onclick="document.getElementById('icon-picker-dlg').showModal();" title="Icon wählen">
+            <i id="icon-preview" class="bi @(string.IsNullOrEmpty(Model.Input.IconClass) ? "bi-box-arrow-up-right" : Model.Input.IconClass)"></i>
+        </button>
+        <input type="hidden" id="IconClass" asp-for="Input.IconClass" />
+    </div>
+    <div class="col-md-11">
+        <label class="form-label">Bezeichnung *</label>
+        <input class="form-control" asp-for="Input.Label" required />
+        <div class="form-text">Icon-Klasse: <code id="icon-name">@(string.IsNullOrEmpty(Model.Input.IconClass) ? "bi-box-arrow-up-right" : Model.Input.IconClass)</code></div>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Ziel-URL *</label>
+        <input class="form-control" asp-for="Input.Url" required placeholder="https://… oder /interne-seite" />
+        <div class="form-text" id="placeholder-help" style="display: @(Model.Input.Context == CustomMenuContext.Sidebar ? "none" : "block");">
+            Verfügbare Platzhalter im Kontakt-/Firmen-Tab — werden URL-encoded ersetzt:<br />
+            <strong>Kontakt:</strong> <code>{Id}</code>, <code>{FirstName}</code>, <code>{LastName}</code>, <code>{FullName}</code>, <code>{Email}</code>, <code>{Phone}</code>, <code>{Mobile}</code>, <code>{CompanyName}</code>, <code>{CustomerNumber}</code><br />
+            <strong>Firma:</strong> <code>{Id}</code>, <code>{Name}</code>, <code>{Email}</code>, <code>{Phone}</code>, <code>{Website}</code>, <code>{Industry}</code>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Erscheint in</label>
+        <select class="form-select" asp-for="Input.Context"
+                onchange="document.getElementById('placeholder-help').style.display = this.value === 'Sidebar' ? 'none' : 'block';">
+            <option value="@CustomMenuContext.Sidebar">Sidebar (Hauptmenü)</option>
+            <option value="@CustomMenuContext.ContactDetail">Kontakt-Detail (als Tab)</option>
+            <option value="@CustomMenuContext.CompanyDetail">Firmen-Detail (als Tab)</option>
+        </select>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Öffnen-Modus</label>
+        <select class="form-select" asp-for="Input.OpenMode">
+            <option value="@CustomMenuOpenMode.NewTab">Neuer Browser-Tab</option>
+            <option value="@CustomMenuOpenMode.SameTab">Selber Tab (Navigation)</option>
+            <option value="@CustomMenuOpenMode.Embedded">Eingebettet (IFrame)</option>
+        </select>
+        <div class="form-text">„Eingebettet" zeigt die Seite im Content-Bereich. Bei Kontakt/Firmen-Tab automatisch immer eingebettet.</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Sichtbarkeit</label>
+        <select class="form-select" asp-for="Input.Visibility"
+                onchange="document.querySelectorAll('[data-visibility-section]').forEach(s => s.style.display = s.dataset.visibilitySection === this.value ? 'block' : 'none');">
+            <option value="@CustomMenuVisibility.Global">Global (alle)</option>
+            <option value="@CustomMenuVisibility.Departments">Nur Abteilungen</option>
+            <option value="@CustomMenuVisibility.Teams">Nur Teams</option>
+        </select>
+    </div>
+
+    <div class="col-12" data-visibility-section="Departments" style="display: @(Model.Input.Visibility == CustomMenuVisibility.Departments ? "block" : "none");">
+        <label class="form-label">Sichtbar für diese Abteilungen</label>
+        <select class="form-select" asp-for="DepartmentIds" multiple size="5">
+            @foreach (var d in Model.AllDepartments)
+            {
+                <option value="@d.Id">@d.Name</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-12" data-visibility-section="Teams" style="display: @(Model.Input.Visibility == CustomMenuVisibility.Teams ? "block" : "none");">
+        <label class="form-label">Sichtbar für diese Teams</label>
+        <select class="form-select" asp-for="TeamIds" multiple size="5">
+            @foreach (var t in Model.AllTeams)
+            {
+                <option value="@t.Id">@t.Name @(t.Department is null ? "" : $"({t.Department.Name})")</option>
+            }
+        </select>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <a class="btn btn-secondary" href="/Admin/Menu"><i class="bi bi-x-lg"></i> Abbrechen</a>
+    </div>
+</form>
+
+<!-- Icon-Picker-Dialog -->
+<dialog id="icon-picker-dlg" class="icon-picker-dialog">
+    <div class="d-flex align-items-center mb-2">
+        <h5 class="mb-0 me-auto">Icon wählen</h5>
+        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('icon-picker-dlg').close();">
+            <i class="bi bi-x-lg"></i>
+        </button>
+    </div>
+    <input id="icon-search" class="form-control mb-2" placeholder="Suche…" oninput="filterIcons(this.value)" autocomplete="off" />
+    <div id="icon-grid" class="icon-grid"></div>
+    <div class="text-muted small mt-2">
+        Eigene Klasse: <input id="icon-free" class="form-control form-control-sm d-inline-block" style="width: 200px;" placeholder="bi-…" />
+        <button type="button" class="btn btn-sm btn-outline-primary" onclick="pickIcon(document.getElementById('icon-free').value)">Übernehmen</button>
+    </div>
+</dialog>
+
+@section Scripts {
+    <script>
+        // Kuratierter Icon-Pool — die häufigsten Bootstrap-Icons für Tools & Integrationen.
+        var ICONS = [
+            'bi-box-arrow-up-right','bi-link-45deg','bi-globe','bi-cloud','bi-house','bi-app',
+            'bi-rocket','bi-rocket-takeoff','bi-lightning','bi-stars','bi-tools','bi-wrench',
+            'bi-gear','bi-sliders','bi-key','bi-shield','bi-shield-lock','bi-lock',
+            'bi-people','bi-person','bi-person-vcard','bi-person-circle','bi-building','bi-bank',
+            'bi-telephone','bi-telephone-forward','bi-headset','bi-chat','bi-chat-dots','bi-envelope',
+            'bi-calendar','bi-calendar-event','bi-clock','bi-bell','bi-flag','bi-bookmark',
+            'bi-folder','bi-folder2-open','bi-file-earmark','bi-file-earmark-text','bi-file-earmark-pdf','bi-files',
+            'bi-cloud-arrow-up','bi-cloud-download','bi-download','bi-upload','bi-search','bi-funnel',
+            'bi-graph-up','bi-bar-chart','bi-pie-chart','bi-speedometer','bi-speedometer2','bi-activity',
+            'bi-cart','bi-cart-check','bi-bag','bi-receipt','bi-credit-card','bi-cash',
+            'bi-truck','bi-box','bi-box-seam','bi-archive','bi-tag','bi-tags',
+            'bi-map','bi-geo-alt','bi-pin-map','bi-signpost','bi-compass','bi-flag-fill',
+            'bi-camera','bi-image','bi-film','bi-music-note','bi-mic','bi-volume-up',
+            'bi-database','bi-server','bi-cpu','bi-hdd','bi-router','bi-wifi',
+            'bi-github','bi-gitlab','bi-google','bi-microsoft','bi-slack','bi-discord',
+            'bi-twitter-x','bi-linkedin','bi-youtube','bi-whatsapp','bi-telegram','bi-skype',
+            'bi-book','bi-journal-text','bi-newspaper','bi-megaphone','bi-trophy','bi-award',
+            'bi-question-circle','bi-info-circle','bi-exclamation-triangle','bi-check-circle','bi-bug','bi-life-preserver'
+        ];
+
+        function renderIcons(filter) {
+            var grid = document.getElementById('icon-grid');
+            var q = (filter || '').toLowerCase().trim();
+            grid.innerHTML = ICONS
+                .filter(function (c) { return !q || c.includes(q); })
+                .map(function (c) {
+                    return '<button type="button" class="icon-tile" title="' + c + '" onclick="pickIcon(\'' + c + '\')"><i class="bi ' + c + '"></i></button>';
+                }).join('');
+        }
+        function filterIcons(v) { renderIcons(v); }
+        function pickIcon(cls) {
+            cls = (cls || '').trim();
+            if (!cls) return;
+            if (!cls.startsWith('bi-')) cls = 'bi-' + cls;
+            document.getElementById('IconClass').value = cls;
+            var prev = document.getElementById('icon-preview');
+            prev.className = 'bi ' + cls;
+            prev.style.fontSize = '1.4rem';
+            document.getElementById('icon-name').textContent = cls;
+            document.getElementById('icon-picker-dlg').close();
+        }
+        renderIcons('');
+    </script>
+}

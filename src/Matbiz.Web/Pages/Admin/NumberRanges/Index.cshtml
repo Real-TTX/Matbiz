@@ -1,0 +1,53 @@
+@page
+@model Matbiz.Web.Pages.Admin.NumberRanges.IndexModel
+@{ ViewData["Title"] = "Nummernkreise"; }
+
+<h1 class="mb-3">Nummernkreise</h1>
+
+<p class="text-muted">Hier werden die automatischen Nummern für Artikel und Belege definiert. Format: <code>{Präfix}{Trenner}{Jahr?}{Trenner}{Zähler}</code>. Bei Jahreswechsel wird der Zähler automatisch zurückgesetzt (wenn „Jahr" aktiviert).</p>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Bezeichnung</th>
+            <th>Key</th>
+            <th>Format</th>
+            <th class="text-end">Aktueller Stand</th>
+            <th class="text-end">Nächste Nummer</th>
+            <th style="width: 80px;" class="text-end">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var nr in Model.Items)
+        {
+            <tr>
+                <td><a class="text-decoration-none text-reset" href="/Admin/NumberRanges/Edit/@nr.Id"><strong>@nr.Label</strong></a></td>
+                <td><code class="small">@nr.Key</code></td>
+                <td>
+                    @{
+                        var sep = nr.Separator ?? "-";
+                        var parts = new List<string>();
+                        if (!string.IsNullOrEmpty(nr.Prefix)) parts.Add(nr.Prefix);
+                        if (nr.IncludeYear) parts.Add("JJJJ");
+                        parts.Add(new string('0', Math.Max(1, nr.Digits)));
+                    }
+                    <code>@string.Join(sep, parts)</code>
+                </td>
+                <td class="text-end">
+                    @if (nr.CurrentValue == 0)
+                    {
+                        <span class="text-muted">noch nicht vergeben</span>
+                    }
+                    else
+                    {
+                        @(Matbiz.Web.Modules.Articles.Services.NumberRangeService.Format(nr))
+                    }
+                </td>
+                <td class="text-end"><code class="text-success">@Model.Previews.GetValueOrDefault(nr.Id, "")</code></td>
+                <td class="text-end">
+                    <a class="btn btn-sm btn-outline-secondary" href="/Admin/NumberRanges/Edit/@nr.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

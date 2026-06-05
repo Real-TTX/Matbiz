@@ -48,4 +48,31 @@ public class UserAdminService(
             await roles.CreateAsync(new IdentityRole(role));
         await users.AddToRoleAsync(u, role);
     }
+
+    public async Task<IdentityResult> DeleteAsync(string userId)
+    {
+        var u = await users.FindByIdAsync(userId);
+        if (u is null) return IdentityResult.Failed(new IdentityError { Description = "User nicht gefunden." });
+        return await users.DeleteAsync(u);
+    }
+
+    public async Task<IdentityResult> ResetPasswordAsync(string userId, string newPassword)
+    {
+        var u = await users.FindByIdAsync(userId);
+        if (u is null) return IdentityResult.Failed(new IdentityError { Description = "User nicht gefunden." });
+        var token = await users.GeneratePasswordResetTokenAsync(u);
+        return await users.ResetPasswordAsync(u, token, newPassword);
+    }
+
+    public async Task<IdentityResult> UpdateProfileAsync(string userId, string email, string? displayName)
+    {
+        var u = await users.FindByIdAsync(userId);
+        if (u is null) return IdentityResult.Failed(new IdentityError { Description = "User nicht gefunden." });
+        u.Email = email;
+        u.UserName = email;
+        u.NormalizedEmail = email.ToUpperInvariant();
+        u.NormalizedUserName = email.ToUpperInvariant();
+        u.DisplayName = displayName ?? "";
+        return await users.UpdateAsync(u);
+    }
 }

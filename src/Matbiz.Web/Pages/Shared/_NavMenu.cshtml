@@ -1,23 +1,95 @@
 @model BrandingSettings
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor Http
+@inject Matbiz.Web.Shared.Navigation.NavMenuComposer Composer
+@inject Matbiz.Web.Shared.ICurrentUserAccessor Current
 
 @{
     var user = Http.HttpContext?.User;
     var isAdmin = user?.IsInRole(Roles.Admin) ?? false;
     var currentPath = Http.HttpContext?.Request.Path.Value ?? "/";
-    string ActiveIf(string startsWith) =>
-        currentPath.StartsWith(startsWith, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    var currentQueryRaw = Http.HttpContext?.Request.QueryString.Value ?? "";
+    var currentQuery = currentQueryRaw.StartsWith("?") ? currentQueryRaw[1..] : currentQueryRaw;
 
-    bool IsContactsActive() =>
-        currentPath.StartsWith("/Customers", StringComparison.OrdinalIgnoreCase)
-        && !currentPath.StartsWith("/Customers/Groups", StringComparison.OrdinalIgnoreCase)
-        && !currentPath.StartsWith("/Customers/Fields", StringComparison.OrdinalIgnoreCase);
+    string? userId = null;
+    if (user?.Identity?.IsAuthenticated == true)
+    {
+        var ctx = await Current.GetAsync();
+        userId = ctx.UserId;
+    }
+
+    // Match-Score je Eintrag — höher = spezifischer.
+    //   • Exakter Pfad + alle Entry-Query-Params im Current vorhanden → großer Bonus
+    //   • Prefix-Match → Score = Prefix-Länge
+    //   • Pfad-Match ohne Query → niedrige Score (Default für „Alle/Übersicht")
+    // Damit gewinnt z.B. „Rechnungen" (Query type=Invoice) gegen „Alle Belege"
+    // wenn Current URL `?type=Invoice` ist.
+    int MatchScore(Matbiz.Web.Shared.Navigation.NavMenuEntry e)
+    {
+        var u = e.Url;
+        var qi = u.IndexOf('?');
+        var entryPath = qi >= 0 ? u[..qi] : u;
+        var entryQuery = qi >= 0 ? u[(qi + 1)..] : string.Empty;
+
+        bool prefixOk = !string.IsNullOrEmpty(e.ActiveOnPrefix)
+                        && currentPath.StartsWith(e.ActiveOnPrefix, StringComparison.OrdinalIgnoreCase);
+        bool pathOk   = currentPath.Equals(entryPath, StringComparison.OrdinalIgnoreCase);
+
+        if (!prefixOk && !pathOk) return -1;
+
+        // Query-Param-Subset-Check: alle Entry-Params müssen im Current vorhanden
+        // sein (mit identischem Wert). Falls Entry keine Query hat → trivial true.
+        if (!string.IsNullOrEmpty(entryQuery))
+        {
+            var entryParams = ParseQuery(entryQuery);
+            var currentParams = ParseQuery(currentQuery);
+            foreach (var kv in entryParams)
+            {
+                if (!currentParams.TryGetValue(kv.Key, out var cv)
+                    || !string.Equals(cv, kv.Value, StringComparison.OrdinalIgnoreCase))
+                    return -1;
+            }
+            return entryPath.Length + 1000;  // Bonus für Query-Match
+        }
+
+        // Entry hat keine Query. Wenn Current eine hat: niedrigere Score → spezifischere
+        // Geschwister gewinnen, aber wir matchen noch (für „Alle Belege" auf /Documents?…).
+        if (prefixOk) return (e.ActiveOnPrefix ?? "").Length;
+        return entryPath.Length;
+    }
+
+    static Dictionary<string, string> ParseQuery(string q) =>
+        q.Split('&', StringSplitOptions.RemoveEmptyEntries)
+         .Select(p => p.Split('=', 2))
+         .GroupBy(p => Uri.UnescapeDataString(p[0]), StringComparer.OrdinalIgnoreCase)
+         .ToDictionary(g => g.Key,
+                       g => g.Last().Length > 1 ? Uri.UnescapeDataString(g.Last()[1]) : "",
+                       StringComparer.OrdinalIgnoreCase);
 }
 
 <div class="brand">
     @if (Model.LogoBytes is { Length: > 0 })
     {
-        <img class="brand-logo" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" />
+        var hasDarkLogo = Model.LogoDarkBytes is { Length: > 0 };
+        var invertCls = Model.LogoInvertMode switch {
+            "Always"   => " logo-invert-always",
+            "DarkOnly" => " logo-invert-dark",
+            _          => ""
+        };
+        var style = $"height: {Model.LogoHeightPx}px; max-height: {Model.LogoHeightPx}px;";
+        if (hasDarkLogo)
+        {
+            // Zwei separate img-Elemente, Theme-abhängige Anzeige via CSS
+            <img class="brand-logo brand-logo-light" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" style="@style" />
+            <img class="brand-logo brand-logo-dark"  src="/branding/logo/dark?v=@Model.Version" alt="@Model.AppName" style="@style" />
+        }
+        else
+        {
+            <img class="brand-logo@(invertCls)" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" style="@style" />
+        }
+        @if (Model.ShowAppNameUnderLogo)
+        {
+            <span class="brand-name brand-name-under">@Model.AppName</span>
+        }
     }
     else
     {
@@ -27,35 +99,69 @@
 
 @if (user?.Identity?.IsAuthenticated == true)
 {
+    var navCtx = new Matbiz.Web.Shared.Navigation.NavMenuContext(userId, isAdmin);
+    var composition = await Composer.ComposeAsync(navCtx);
+
+    // Ermittle den am besten passenden Eintrag — nur der wird hervorgehoben.
+    var activeKey = composition.Visible
+        .Select(e => (e.Key, Score: MatchScore(e)))
+        .Where(x => x.Score >= 0)
+        .OrderByDescending(x => x.Score)
+        .Select(x => x.Key)
+        .FirstOrDefault();
+
     <nav class="nav-scrollable">
         <div class="nav flex-column">
-            <div class="nav-item"><a class="nav-link @(currentPath == "/" ? "active" : "")" href="/"><i class="bi bi-speedometer2"></i> Dashboard</a></div>
-            <div class="nav-item"><a class="nav-link @(IsContactsActive() ? "active" : "")" href="/Customers"><i class="bi bi-person-vcard"></i> Kontakte</a></div>
-            <div class="nav-item"><a class="nav-link nav-sub @ActiveIf("/Customers/Groups")" href="/Customers/Groups"><i class="bi bi-collection"></i> Gruppen</a></div>
-            <div class="nav-item"><a class="nav-link @ActiveIf("/Companies")" href="/Companies"><i class="bi bi-building"></i> Firmen</a></div>
-            <div class="nav-item"><a class="nav-link @ActiveIf("/Tasks")" href="/Tasks"><i class="bi bi-check2-square"></i> Aufgaben</a></div>
+            @{
+                string? lastSection = "__init";
+            }
+            @foreach (var e in composition.Visible)
+            {
+                if (e.Section != lastSection)
+                {
+                    if (!string.IsNullOrEmpty(e.Section))
+                    {
+                        <div class="nav-section">@e.Section</div>
+                    }
+                    lastSection = e.Section;
+                }
+                var classes = "nav-link";
+                if (e.IsSub) classes += " nav-sub";
+                if (e.Key == activeKey) classes += " active";
+                var target = e.OpenInNewTab ? "target=\"_blank\" rel=\"noopener\"" : "";
+                <div class="nav-item">
+                    <a class="@classes" href="@e.Url" @Html.Raw(target)>
+                        <i class="bi @e.Icon"></i> @e.Label
+                        @if (e.OpenInNewTab) { <i class="bi bi-arrow-up-right ms-auto small text-muted"></i> }
+                    </a>
+                </div>
+            }
 
             @if (isAdmin)
             {
-                <div class="nav-section">Administration</div>
-                <div class="nav-item"><a class="nav-link @ActiveIf("/Users")" href="/Users"><i class="bi bi-people"></i> Benutzer</a></div>
-                <div class="nav-item"><a class="nav-link @ActiveIf("/Departments")" href="/Departments"><i class="bi bi-diagram-3"></i> Abteilungen</a></div>
-                <div class="nav-item"><a class="nav-link @ActiveIf("/Teams")" href="/Teams"><i class="bi bi-people-fill"></i> Teams</a></div>
-                <div class="nav-item"><a class="nav-link @ActiveIf("/Customers/Fields")" href="/Customers/Fields"><i class="bi bi-sliders"></i> Kontaktfelder</a></div>
-                <div class="nav-section">System</div>
-                <div class="nav-item"><a class="nav-link @ActiveIf("/System")" href="/System/Appearance"><i class="bi bi-palette"></i> Aussehen</a></div>
+                <div class="nav-section">Verwaltung</div>
+                <div class="nav-item">
+                    <a class="nav-link @(currentPath.StartsWith("/Admin", StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("/Users", StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("/Teams", StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("/Departments", StringComparison.OrdinalIgnoreCase) || currentPath.StartsWith("/System", StringComparison.OrdinalIgnoreCase) ? "active" : "")" href="/Admin">
+                        <i class="bi bi-shield-lock"></i> Administration
+                    </a>
+                </div>
             }
-
-            <div class="nav-spacer"></div>
-            <div class="nav-item"><a class="nav-link" href="/Account/Manage"><i class="bi bi-person-circle"></i> @user.Identity?.Name</a></div>
-            <div class="nav-item">
-                <form method="post" action="/Account/Logout">
-                    @Html.AntiForgeryToken()
-                    <button type="submit" class="nav-link nav-logout"><i class="bi bi-box-arrow-right"></i> Abmelden</button>
-                </form>
-            </div>
         </div>
     </nav>
+
+    <div class="nav-bottom">
+        <div class="nav-item">
+            <a class="nav-link @(currentPath.StartsWith("/Account", StringComparison.OrdinalIgnoreCase) ? "active" : "")" href="/Account/Manage">
+                <i class="bi bi-person-circle"></i> @user.Identity?.Name
+            </a>
+        </div>
+        <div class="nav-item">
+            <form method="post" action="/Account/Logout">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="nav-link nav-logout"><i class="bi bi-box-arrow-right"></i> Abmelden</button>
+            </form>
+        </div>
+    </div>
 }
 else
 {

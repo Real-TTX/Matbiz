@@ -1,0 +1,63 @@
+@page "/Admin/ArticleFields/EditField/{Id:guid?}"
+@model Matbiz.Web.Pages.Admin.ArticleFields.EditFieldModel
+@using Matbiz.Web.Modules.CustomFields.Models
+@{ ViewData["Title"] = Model.IsNew ? "Neues Feld" : "Feld bearbeiten"; }
+
+<h1>@(Model.IsNew ? "Neues Artikelfeld" : "Artikelfeld bearbeiten")</h1>
+
+<form method="post" class="row g-3" style="max-width: 900px;">
+    <div asp-validation-summary="ModelOnly" class="text-danger small col-12"></div>
+
+    <div class="col-md-4">
+        <label class="form-label">Schlüssel *</label>
+        <input class="form-control" asp-for="Input.Key" required />
+        <div class="form-text">z.B. <code>gewicht</code>, <code>laenge</code>.</div>
+    </div>
+    <div class="col-md-5">
+        <label class="form-label">Bezeichnung *</label>
+        <input class="form-control" asp-for="Input.Label" required />
+    </div>
+    <div class="col-md-3">
+        <label class="form-label">Sortierung</label>
+        <input type="number" class="form-control" asp-for="Input.SortOrder" />
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Typ</label>
+        <select class="form-select" asp-for="Input.Type"
+                onchange="document.getElementById('options-block').style.display = this.value === 'ValueList' ? 'block' : 'none';">
+            <option value="@CustomFieldType.Text">Text (einzeilig)</option>
+            <option value="@CustomFieldType.LongText">Text (mehrzeilig)</option>
+            <option value="@CustomFieldType.Number">Zahl</option>
+            <option value="@CustomFieldType.Date">Datum</option>
+            <option value="@CustomFieldType.Boolean">Ja / Nein</option>
+            <option value="@CustomFieldType.ValueList">Auswahlliste</option>
+        </select>
+    </div>
+    <div class="col-md-5">
+        <label class="form-label">Sektion</label>
+        <select class="form-select" asp-for="Input.SectionId">
+            <option value="">— Eigene Felder —</option>
+            @foreach (var s in Model.Sections)
+            {
+                <option value="@s.Id">@s.Name</option>
+            }
+        </select>
+    </div>
+    <div class="col-md-3 d-flex align-items-end">
+        <div class="form-check">
+            <input class="form-check-input" asp-for="Input.Required" id="req" />
+            <label class="form-check-label" for="req">Pflichtfeld</label>
+        </div>
+    </div>
+
+    <div class="col-12" id="options-block" style="display: @(Model.Input.Type == CustomFieldType.ValueList ? "block" : "none");">
+        <label class="form-label">Auswahlwerte</label>
+        <textarea class="form-control" asp-for="Input.Options" rows="6" placeholder="Ein Wert pro Zeile."></textarea>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <a class="btn btn-secondary" href="/Admin/ArticleFields?Tab=felder"><i class="bi bi-x-lg"></i> Abbrechen</a>
+    </div>
+</form>

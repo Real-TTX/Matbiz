@@ -38,12 +38,22 @@ public class Customer
     [MaxLength(100)]
     public string? Country { get; set; }
 
+    /// <summary>Umsatzsteuer-Identifikationsnummer des Käufers — Pflicht bei
+    /// EU-B2B-Reverse-Charge und Drittland-Geschäften (ZUGFeRD BT-48).</summary>
+    [MaxLength(30)]
+    public string? VatId { get; set; }
+
+    /// <summary>Debitor-Konto für Buchhaltung (DATEV) — automatisch vergeben
+    /// beim ersten Export, kann manuell überschrieben werden.</summary>
+    [MaxLength(10)]
+    public string? DebitorAccount { get; set; }
+
     public string? Notes { get; set; }
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
-    public List<CustomerFieldValue> CustomFieldValues { get; set; } = new();
+    // CustomFieldValues werden über CustomFieldService aus dem CustomFields-Modul geladen.
     public List<CustomerHistoryEntry> History { get; set; } = new();
     public List<CustomerTag> Tags { get; set; } = new();
 
@@ -61,44 +71,8 @@ public class Customer
         };
 }
 
-public enum CustomFieldType
-{
-    Text = 0,
-    Number = 1,
-    Date = 2,
-    Boolean = 3,
-    LongText = 4,
-    File = 5
-}
-
-public class CustomerFieldDefinition
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-
-    [Required, MaxLength(100)]
-    public string Key { get; set; } = string.Empty;
-
-    [Required, MaxLength(200)]
-    public string Label { get; set; } = string.Empty;
-
-    public CustomFieldType Type { get; set; } = CustomFieldType.Text;
-
-    public bool Required { get; set; }
-
-    public int SortOrder { get; set; }
-
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-}
-
-public class CustomerFieldValue
-{
-    public Guid Id { get; set; } = Guid.NewGuid();
-    public Guid CustomerId { get; set; }
-    public Customer Customer { get; set; } = default!;
-    public Guid FieldDefinitionId { get; set; }
-    public CustomerFieldDefinition FieldDefinition { get; set; } = default!;
-    public string? Value { get; set; }
-}
+// CustomFieldType, CustomerFieldDefinition, CustomerFieldValue wurden in das
+// CustomFields-Modul migriert (siehe Modules/CustomFields/Models/).
 
 public class CustomerHistoryEntry
 {
@@ -118,4 +92,10 @@ public class CustomerHistoryEntry
     public string Action { get; set; } = string.Empty;
 
     public string? Details { get; set; }
+
+    /// <summary>Zeitpunkt der letzten Bearbeitung — null wenn unverändert.</summary>
+    public DateTime? EditedAt { get; set; }
+
+    /// <summary>Wer den Eintrag zuletzt bearbeitet hat.</summary>
+    public string? EditedByUserId { get; set; }
 }

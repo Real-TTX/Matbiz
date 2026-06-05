@@ -1,0 +1,204 @@
+@page "/Wiki/Edit/{Slug?}"
+@model Matbiz.Web.Pages.Wiki.EditModel
+@using Matbiz.Web.Modules.Wiki.Models
+@{ ViewData["Title"] = Model.IsNew ? "Neue Wiki-Seite" : "Bearbeiten: " + Model.Input.Title; }
+
+<h1>@(Model.IsNew ? "Neue Wiki-Seite" : "Seite bearbeiten")</h1>
+
+<form method="post" class="row g-3" style="max-width: 1100px;">
+    <div class="col-md-8">
+        <label class="form-label">Titel *</label>
+        <input class="form-control" asp-for="Input.Title" required />
+        <span asp-validation-for="Input.Title" class="text-danger small"></span>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Slug (URL)</label>
+        <input class="form-control" asp-for="Input.Slug" placeholder="auto aus Titel" />
+        <div class="form-text">Wird automatisch aus dem Titel gebildet, wenn leer.</div>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Inhalt</label>
+        <textarea id="wiki-editor-textarea" asp-for="Input.ContentMarkdown" style="display:none;"></textarea>
+        <div id="wiki-editor-mount" style="min-height: 500px; border: 1px solid var(--border); border-radius: 6px;">
+            <div id="wiki-editor-loading" style="padding: 1rem; color: var(--text-muted);">
+                <i class="bi bi-hourglass-split"></i> Editor wird geladen…
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Sichtbarkeit</label>
+        <select class="form-select" asp-for="Input.Visibility"
+                onchange="document.querySelectorAll('[data-visibility-section]').forEach(s => s.style.display = s.dataset.visibilitySection === this.value ? 'block' : 'none');">
+            <option value="@WikiVisibility.Global">Global (alle authentifizierten User)</option>
+            <option value="@WikiVisibility.Departments">Nur Abteilungen</option>
+            <option value="@WikiVisibility.Teams">Nur Teams</option>
+        </select>
+    </div>
+
+    <div class="col-md-8" data-visibility-section="Departments" style="display: @(Model.Input.Visibility == WikiVisibility.Departments ? "block" : "none");">
+        <label class="form-label">Sichtbar für diese Abteilungen</label>
+        <select class="form-select" asp-for="DepartmentIds" multiple size="5">
+            @foreach (var d in Model.AllDepartments)
+            {
+                <option value="@d.Id">@d.Name</option>
+            }
+        </select>
+        <div class="form-text">Mehrfachauswahl mit Strg/Cmd · zählt alle Mitarbeiter aller Teams dieser Abteilungen.</div>
+    </div>
+
+    <div class="col-md-8" data-visibility-section="Teams" style="display: @(Model.Input.Visibility == WikiVisibility.Teams ? "block" : "none");">
+        <label class="form-label">Sichtbar für diese Teams</label>
+        <select class="form-select" asp-for="TeamIds" multiple size="5">
+            @foreach (var t in Model.AllTeams)
+            {
+                <option value="@t.Id">@t.Name @(t.Department is null ? "" : $"({t.Department.Name})")</option>
+            }
+        </select>
+    </div>
+
+    <div class="col-12">
+        <label class="form-label">Zusätzliche Bearbeiter</label>
+        <select class="form-select" asp-for="EditorIds" multiple size="4" style="max-width: 600px;">
+            @foreach (var u in Model.AllUsers.Where(u => u.IsActive))
+            {
+                <option value="@u.Id">@(u.DisplayName ?? u.Email)</option>
+            }
+        </select>
+        <div class="form-text">System-Admins und der Ersteller können immer bearbeiten.</div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <a class="btn btn-secondary" href="/Wiki"><i class="bi bi-x-lg"></i> Abbrechen</a>
+        @if (!Model.IsNew)
+        {
+            <button type="submit" formaction="/Wiki/Edit/@Model.Slug?handler=Delete" class="btn btn-outline-danger ms-auto"
+                    onclick="return confirm('Seite wirklich löschen?');">
+                <i class="bi bi-trash"></i> Löschen
+            </button>
+        }
+    </div>
+</form>
+
+@section Scripts {
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/toastui-editor.min.css" />
+    <link rel="stylesheet" href="https://uicdn.toast.com/editor/3.2.2/theme/toastui-editor-dark.min.css" />
+    <script src="https://uicdn.toast.com/editor/3.2.2/toastui-editor-all.min.js"></script>
+    <style>
+        #wiki-editor-mount { overflow: hidden; }
+        .toastui-editor-defaultUI { border: 0 !important; }
+
+        /* Kompakte Toolbar — KEIN Anfassen der Icon-Buttons selbst
+           (die nutzen CSS-Sprites — background-size/-position würde die
+           Sprite-Koordinaten zerstören und alle Icons unsichtbar machen).
+           Stattdessen: das ganze Toolbar-Element per `zoom` verkleinern. */
+        .toastui-editor-defaultUI .toastui-editor-toolbar {
+            zoom: 0.85;
+        }
+        /* Padding & Margins der Wrapper minimieren */
+        .toastui-editor-defaultUI-toolbar { padding: 2px 4px !important; }
+        .toastui-editor-toolbar-group { margin: 0 2px !important; }
+
+        /* Modus-Tabs unten (Markdown / WYSIWYG) — auch kompakter */
+        .toastui-editor-mode-switch { height: 28px !important; }
+        .toastui-editor-mode-switch .tab-item {
+            font-size: 0.8rem !important;
+            line-height: 28px !important;
+            padding: 0 12px !important;
+        }
+        /* Editor-Content — etwas kleinere Schrift */
+        .toastui-editor-defaultUI .ProseMirror,
+        .toastui-editor-md-container .CodeMirror {
+            font-size: 0.9rem;
+        }
+
+        .wiki-editor-error {
+            padding: 1rem;
+            background: #fff3cd;
+            border: 1px solid #ffe69c;
+            color: #664d03;
+            border-radius: 6px;
+        }
+        [data-bs-theme="dark"] .wiki-editor-error {
+            background: #332701; color: #ffda6a; border-color: #4d3a01;
+        }
+    </style>
+    <script>
+        function wikiEditorFallback(reason) {
+            var ta = document.getElementById('wiki-editor-textarea');
+            var mount = document.getElementById('wiki-editor-mount');
+            if (mount) {
+                mount.innerHTML = '<div class="wiki-editor-error">' +
+                    '<strong><i class="bi bi-exclamation-triangle"></i> WYSIWYG-Editor konnte nicht geladen werden.</strong><br />' +
+                    '<small>' + reason + ' — du kannst die Seite trotzdem als Markdown bearbeiten:</small></div>';
+                mount.style.minHeight = '';
+                mount.style.border = '0';
+            }
+            if (ta) { ta.style.display = ''; ta.rows = 20; ta.className = 'form-control mt-2'; }
+        }
+        (function () {
+            var textarea = document.getElementById('wiki-editor-textarea');
+            var mount = document.getElementById('wiki-editor-mount');
+            var loading = document.getElementById('wiki-editor-loading');
+            if (!textarea || !mount) { console.error('Wiki editor: textarea/mount fehlt'); return; }
+            if (typeof toastui === 'undefined' || !toastui.Editor) {
+                wikiEditorFallback('Skript ' + (typeof toastui) + ' nicht verfügbar (CDN blockiert?)');
+                return;
+            }
+            if (loading) loading.remove();
+
+            function buildEditor(initialMd) {
+                var dark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                return new toastui.Editor({
+                    el: mount,
+                    height: '600px',
+                    initialEditType: 'wysiwyg',
+                    previewStyle: 'vertical',
+                    initialValue: initialMd || '',
+                    theme: dark ? 'dark' : 'light',
+                    usageStatistics: false,
+                    toolbarItems: [
+                        ['heading', 'bold', 'italic', 'strike'],
+                        ['hr', 'quote'],
+                        ['ul', 'ol', 'task', 'indent', 'outdent'],
+                        ['table', 'image', 'link'],
+                        ['code', 'codeblock']
+                    ]
+                });
+            }
+
+            var editor;
+            try {
+                editor = buildEditor(textarea.value);
+            } catch (e) {
+                console.error('Toast UI Editor Init fehlgeschlagen:', e);
+                wikiEditorFallback('Init-Fehler: ' + e.message);
+                return;
+            }
+
+            // Markdown vor dem Absenden ins Textarea kopieren — geht ans Server-Model.
+            var form = textarea.closest('form');
+            if (form) {
+                form.addEventListener('submit', function () {
+                    textarea.value = editor.getMarkdown();
+                });
+            }
+
+            // Theme-Umschaltung: Toast UI hat keinen Laufzeit-Switch, daher Editor
+            // zerstören und mit gemerktem Markdown neu erstellen.
+            var lastTheme = document.documentElement.getAttribute('data-bs-theme');
+            var mo = new MutationObserver(function () {
+                var t = document.documentElement.getAttribute('data-bs-theme');
+                if (t === lastTheme) return;
+                lastTheme = t;
+                var md = editor.getMarkdown();
+                editor.destroy();
+                mount.innerHTML = '';
+                editor = buildEditor(md);
+            });
+            mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-bs-theme'] });
+        })();
+    </script>
+}

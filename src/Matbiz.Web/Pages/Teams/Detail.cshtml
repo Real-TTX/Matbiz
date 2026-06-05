@@ -2,10 +2,9 @@
 @model Matbiz.Web.Pages.Teams.DetailModel
 @{
     ViewData["Title"] = Model.Team?.Name ?? "Team";
+    Layout = "_AdminLayout";
     var team = Model.Team!;
 }
-
-<a class="btn btn-link mb-2 ps-0" href="/Teams"><i class="bi bi-arrow-left"></i> Zurück</a>
 
 @if (TempData["StatusMessage"] is string msg)
 {
@@ -103,7 +102,7 @@ else
         @foreach (var t in Model.TeamTasks)
         {
             <li class="list-group-item d-flex align-items-center">
-                <a class="text-decoration-none text-reset me-auto" href="/Tasks/@t.Id">@t.Title</a>
+                <a class="text-decoration-none text-reset me-auto" href="/Tasks/Edit/@t.Id">@t.Title</a>
                 <span class="badge bg-secondary">@t.Status</span>
             </li>
         }

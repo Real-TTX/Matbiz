@@ -20,6 +20,18 @@ public static class BrandingEndpoints
             return Results.File(b.LogoBytes, b.LogoContentType ?? "application/octet-stream");
         }).AllowAnonymous();
 
+        endpoints.MapGet("/branding/logo/dark", async (BrandingService branding, HttpContext http) =>
+        {
+            var b = await branding.GetAsync(http.RequestAborted);
+            // Falls kein Dark-Logo gesetzt → Fallback auf Light-Logo (Browser muss eh ein Bild bekommen)
+            var bytes = b.LogoDarkBytes ?? b.LogoBytes;
+            var contentType = b.LogoDarkContentType ?? b.LogoContentType;
+            if (bytes is null || bytes.Length == 0) return Results.NotFound();
+
+            http.Response.Headers.CacheControl = "public, max-age=3600";
+            return Results.File(bytes, contentType ?? "application/octet-stream");
+        }).AllowAnonymous();
+
         return endpoints;
     }
 }

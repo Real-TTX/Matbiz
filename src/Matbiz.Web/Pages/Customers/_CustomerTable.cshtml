@@ -1,26 +1,29 @@
 @model Matbiz.Web.Pages.Customers.IndexModel
 
+@{
+    var custColCount = Model.Columns.All.Count(x => Model.Columns.Is(x.Key)) + 1;
+}
 <div id="customer-table">
-    @if (Model.Items.Count == 0)
-    {
-        <p class="text-muted">Keine Kontakte gefunden.</p>
-    }
-    else
-    {
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
-                    {
-                        <th>@col.Label</th>
-                    }
-                    <th class="text-end">Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
+                {
+                    <th>@col.Label</th>
+                }
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody id="customer-list-body" data-paginate data-page-size="50">
+            @if (Model.Items.Count == 0)
+            {
+                <tr class="empty-row"><td colspan="@custColCount">Keine Daten</td></tr>
+            }
+            else
+            {
                 @foreach (var c in Model.Items)
                 {
-                    <tr>
+                    <tr data-filter-text="@c.Name @c.Email @c.Phone @c.EffectiveCompanyName @c.City">
                         @foreach (var col in Model.Columns.All.Where(x => Model.Columns.Is(x.Key)))
                         {
                             <td>
@@ -76,18 +79,19 @@
                                 }
                             </td>
                         }
-                        <td class="text-end">
-                            <div class="btn-group btn-group-sm">
-                                <a class="btn btn-outline-secondary" title="Öffnen" href="/Customers/@c.Id"><i class="bi bi-folder2-open"></i></a>
-                                <a class="btn btn-outline-secondary" title="Historie" href="/Customers/@c.Id?tab=historie"><i class="bi bi-clock-history"></i></a>
-                                <a class="btn btn-outline-secondary" title="Aufgabe erstellen" href="/Tasks/Edit?customerId=@c.Id"><i class="bi bi-plus-square"></i></a>
-                            </div>
-                        </td>
-                    </tr>
+                    <td class="text-end">
+                        <div class="btn-group btn-group-sm">
+                            <a class="btn btn-outline-secondary" title="Öffnen" href="/Customers/@c.Id"><i class="bi bi-folder2-open"></i></a>
+                            <a class="btn btn-outline-secondary" title="Historie" href="/Customers/@c.Id?tab=historie"><i class="bi bi-clock-history"></i></a>
+                            <a class="btn btn-outline-secondary" title="Aufgabe erstellen" href="/Tasks/Edit?customerId=@c.Id"><i class="bi bi-plus-square"></i></a>
+                        </div>
+                    </td>
+                </tr>
                 }
-            </tbody>
-        </table>
-    }
+            }
+        </tbody>
+    </table>
+    <div data-pagination="customer-list-body"></div>
 </div>
 
 @functions {

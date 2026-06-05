@@ -45,17 +45,18 @@
                         <th style="width: 160px;">
                             <a class="th-sort" href="@SortLink("at")">Datum / Zeit <i class="bi @SortIcon("at")"></i></a>
                         </th>
-                        <th style="width: 140px;">
+                        <th style="width: 130px;">
                             <a class="th-sort" href="@SortLink("action")">Aktion <i class="bi @SortIcon("action")"></i></a>
                         </th>
                         <th>Details</th>
-                        <th style="width: 200px;">Bearbeiter</th>
+                        <th style="width: 170px;">Bearbeiter</th>
+                        <th style="width: 80px;" class="text-end"></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var h in rows)
                     {
-                        <tr>
+                        <tr data-history-id="@h.Id">
                             <td class="text-nowrap">
                                 <i class="bi bi-calendar3 text-muted me-1"></i>
                                 <strong>@h.At.ToLocalTime().ToString("dd.MM.yyyy")</strong>
@@ -66,7 +67,15 @@
                                 <span class="history-action @badgeCls"><i class="bi @iconCls"></i> @h.Action</span>
                             </td>
                             <td>
-                                <div>@h.Details</div>
+                                <div data-history-display>@h.Details</div>
+                                <form method="post" asp-page-handler="EditHistory" data-history-edit class="d-none mt-1">
+                                    <input type="hidden" name="entryId" value="@h.Id" />
+                                    <textarea name="details" class="form-control form-control-sm" rows="3">@h.Details</textarea>
+                                    <div class="d-flex gap-1 mt-1">
+                                        <button class="btn btn-primary btn-sm"><i class="bi bi-check2"></i> Speichern</button>
+                                        <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleHistoryEdit(this, false)">Abbrechen</button>
+                                    </div>
+                                </form>
                                 @if (Model.HistoryAttachments.TryGetValue(h.Id, out var atts) && atts.Count > 0)
                                 {
                                     <div class="d-flex flex-wrap gap-1 mt-1">
@@ -78,13 +87,27 @@
                                         }
                                     </div>
                                 }
+                                @if (h.EditedAt is DateTime ed)
+                                {
+                                    <small class="text-muted d-block mt-1"><i class="bi bi-pencil"></i> Bearbeitet @ed.ToLocalTime().ToString("dd.MM.yyyy HH:mm")@(string.IsNullOrEmpty(h.EditedByUserId) ? "" : $" von {Model.ActorName(h.EditedByUserId)}")</small>
+                                }
                                 @if (!string.IsNullOrEmpty(h.OnBehalfOfAdminId))
                                 {
-                                    <small class="text-warning"><i class="bi bi-shield-lock"></i> via Remote-Zugriff durch @(Model.ActorName(h.OnBehalfOfAdminId))</small>
+                                    <small class="text-warning d-block"><i class="bi bi-shield-lock"></i> via Remote-Zugriff durch @(Model.ActorName(h.OnBehalfOfAdminId))</small>
                                 }
                             </td>
                             <td>
                                 <i class="bi bi-person-circle text-muted me-1"></i>@Model.ActorName(h.ActorUserId)
+                            </td>
+                            <td class="text-end">
+                                <button type="button" class="btn btn-sm btn-link text-muted py-0" onclick="toggleHistoryEdit(this, true)" title="Bearbeiten">
+                                    <i class="bi bi-pencil"></i>
+                                </button>
+                                <form method="post" asp-page-handler="DeleteHistory" class="d-inline"
+                                      onsubmit="return confirm('Eintrag wirklich löschen?');">
+                                    <input type="hidden" name="entryId" value="@h.Id" />
+                                    <button class="btn btn-sm btn-link text-muted py-0" title="Löschen"><i class="bi bi-trash"></i></button>
+                                </form>
                             </td>
                         </tr>
                     }
@@ -104,3 +127,18 @@
         _ => ("bi-arrow-right-circle", "act-default")
     };
 }
+
+<script>
+    // Inline-Toggle für Historie-Bearbeiten — zeigt Textarea, hidet die Anzeige.
+    // Wird auch von Company-History verwendet.
+    window.toggleHistoryEdit = window.toggleHistoryEdit || function (btn, edit) {
+        var row = btn.closest('tr');
+        if (!row) return;
+        var display = row.querySelector('[data-history-display]');
+        var form = row.querySelector('[data-history-edit]');
+        if (!display || !form) return;
+        display.classList.toggle('d-none', edit);
+        form.classList.toggle('d-none', !edit);
+        if (edit) form.querySelector('textarea')?.focus();
+    };
+</script>

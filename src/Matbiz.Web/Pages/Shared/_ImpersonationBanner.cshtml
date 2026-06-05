@@ -1,23 +1,50 @@
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor Http
+@inject Matbiz.Web.Impersonation.IImpersonationService Impersonation
 
 @{
     var user = Http.HttpContext?.User;
-    if (user?.Identity?.IsAuthenticated == true && user.IsImpersonated())
+    if (user?.Identity?.IsAuthenticated != true) { return; }
+
+    if (user.IsImpersonated())
     {
+        // Sicht aus dem Admin-Browser — der „simuliert" gerade User X.
         var targetName = user.UserName();
         var adminName = user.ImpersonatorName();
-        <div class="impersonation-banner">
+        <div class="impersonation-banner impersonation-banner-admin">
             <span class="bi bi-shield-lock me-2" aria-hidden="true"></span>
-            <strong>Remote Zugriff</strong>
-            <span class="mx-2">für Mitarbeiter</span>
+            <strong>Remote-Zugriff</strong>
+            <span class="mx-2">aktiv als</span>
             <strong>@targetName</strong>
-            <span class="ms-2 text-muted">(Admin: @adminName)</span>
-
+            <span class="ms-2 impersonation-meta">· Admin: @adminName</span>
             <form method="post" action="/impersonation/end" class="ms-auto d-inline">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="returnUrl" value="/Users" />
-                <button type="submit" class="btn btn-sm btn-light">Trennen</button>
+                <button type="submit" class="btn btn-sm btn-light"><i class="bi bi-x-lg"></i> Trennen</button>
             </form>
         </div>
+        return;
     }
+
+    // Sicht aus dem normalen User-Browser — gibt's gerade Admins die auf
+    // dieses Konto remoten? Wenn ja: Info-Banner.
+    var userId = user.UserId();
+    if (string.IsNullOrEmpty(userId)) { return; }
+    var actives = await Impersonation.ListActiveOnTargetAsync(userId);
+    if (actives.Count == 0) { return; }
+
+    <div class="impersonation-banner impersonation-banner-target">
+        <span class="bi bi-eye-fill me-2" aria-hidden="true"></span>
+        @if (actives.Count == 1)
+        {
+            <strong>Support-Zugriff</strong>
+            <span class="mx-2">aktiv von</span>
+            <strong>@actives[0].AdminDisplayName</strong>
+            <span class="ms-2 impersonation-meta">· seit @actives[0].StartedAt.ToLocalTime().ToString("HH:mm")</span>
+        }
+        else
+        {
+            <strong>Support-Zugriff aktiv von @actives.Count Admins:</strong>
+            <span class="ms-2">@string.Join(", ", actives.Select(a => $"{a.AdminDisplayName} (seit {a.StartedAt.ToLocalTime():HH:mm})"))</span>
+        }
+    </div>
 }

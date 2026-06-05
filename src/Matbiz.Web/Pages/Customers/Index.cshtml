@@ -10,21 +10,18 @@
     </a>
 </div>
 
-<form id="customer-filter" class="d-flex flex-wrap gap-2 mb-3 align-items-center"
+<form id="customer-filter" class="list-toolbar"
       hx-get="/Customers"
       hx-trigger="input changed delay:200ms from:input[name=Search], change from:input[name=tag]"
       hx-target="#customer-table"
       hx-swap="outerHTML"
       hx-push-url="true">
-    <div class="position-relative" style="max-width: 320px; flex: 0 0 320px;">
-        <i class="bi bi-search position-absolute" style="left: 0.75rem; top: 0.6rem; color: var(--text-muted);"></i>
-        <input class="form-control ps-5" placeholder="Suche…" name="Search" value="@Model.Search" autocomplete="off" />
-    </div>
+    <input class="form-control form-control-sm list-toolbar-search" placeholder="Suchen…" name="Search" value="@Model.Search" autocomplete="off" />
 
     @if (Model.AllTags.Count > 0)
     {
         <details class="tag-filter-dropdown">
-            <summary class="btn btn-outline-secondary">
+            <summary class="btn btn-sm btn-outline-secondary">
                 <i class="bi bi-funnel"></i> Tags
                 @if (Model.FilterTagIds.Count > 0) { <span class="badge bg-primary ms-1">@Model.FilterTagIds.Count</span> }
             </summary>
@@ -52,6 +49,8 @@
             </div>
         </details>
     }
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="customer-list-body">@Model.Items.Count</span> Eintrag/Einträge</span>
 </form>
 
 @await Html.PartialAsync("_CustomerTable", Model)

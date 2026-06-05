@@ -1,0 +1,217 @@
+@page "/Warehouse/Receipts/Edit/{Id:guid?}"
+@model Matbiz.Web.Pages.Warehouse.Receipts.EditModel
+@using Matbiz.Web.Modules.Warehouse.Models
+@using Matbiz.Web.Pages.Shared
+@{
+    ViewData["Title"] = Model.IsNew ? "Neuer Wareneingang" : Model.Doc!.Number;
+}
+
+@if (Model.IsNew)
+{
+    <h1>Neuer Wareneingang</h1>
+    <form method="post" asp-page-handler="Create" class="row g-3" style="max-width: 700px;">
+        <div asp-validation-summary="ModelOnly" class="text-danger small col-12"></div>
+        <div class="col-md-4">
+            <label class="form-label">Datum</label>
+            <input type="date" class="form-control" asp-for="ReceiptDate" />
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Lager *</label>
+            <select class="form-select" asp-for="WarehouseId" required>
+                @foreach (var w in Model.AllWarehouses)
+                {
+                    <option value="@w.Id">@w.Name @(w.IsDefault ? "(Default)" : "")</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Lieferant</label>
+            <select class="form-select" asp-for="SupplierCompanyId">
+                <option value="">— ohne —</option>
+                @foreach (var c in Model.AllCompanies.OrderBy(c => c.Name))
+                {
+                    <option value="@c.Id">@c.Name</option>
+                }
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Liefer-Nr beim Lieferanten</label>
+            <input class="form-control" asp-for="SupplierReferenceNumber" />
+        </div>
+        <div class="col-12">
+            <label class="form-label">Notiz</label>
+            <textarea class="form-control" asp-for="Note" rows="2"></textarea>
+        </div>
+        <div class="d-flex gap-2 mt-3">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-plus-lg"></i> Anlegen</button>
+            <a class="btn btn-secondary" href="/Warehouse/Receipts">Abbrechen</a>
+        </div>
+    </form>
+}
+else
+{
+    var d = Model.Doc!;
+    <div class="d-flex align-items-start mb-3">
+        <div class="me-auto">
+            <h1 class="mb-0">Wareneingang <code>@d.Number</code></h1>
+            <div class="text-muted small mt-1">
+                <span class="badge @Matbiz.Web.Pages.Warehouse.Receipts.IndexModel.StatusBadge(d.Status)">@Matbiz.Web.Pages.Warehouse.Receipts.IndexModel.StatusLabel(d.Status)</span>
+            </div>
+        </div>
+        @if (Model.IsDraft && d.Positions.Count > 0)
+        {
+            <form method="post" asp-page-handler="Book" class="d-inline"
+                  onsubmit="return confirm('Wareneingang buchen? Bestände werden aktualisiert und der Beleg wird unveränderlich.');">
+                <button class="btn btn-success"><i class="bi bi-check2-circle"></i> Buchen</button>
+            </form>
+        }
+    </div>
+
+    @if (TempData["StatusMessage"] is string msg)
+    {
+        <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+    }
+    @if (TempData["StatusError"] is string err)
+    {
+        <div class="alert alert-warning py-2"><i class="bi bi-exclamation-triangle"></i> @err</div>
+    }
+
+    <form method="post" asp-page-handler="SaveHeader" class="card mb-3">
+        <div class="card-body row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Datum</label>
+                <input type="date" class="form-control" asp-for="ReceiptDate" disabled="@(!Model.IsDraft)" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Lager</label>
+                <select class="form-select" asp-for="WarehouseId" disabled="@(!Model.IsDraft)">
+                    @foreach (var w in Model.AllWarehouses)
+                    {
+                        <option value="@w.Id">@w.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Lieferant</label>
+                <select class="form-select" asp-for="SupplierCompanyId" disabled="@(!Model.IsDraft)">
+                    <option value="">— ohne —</option>
+                    @foreach (var c in Model.AllCompanies.OrderBy(c => c.Name))
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Liefer-Nr Lieferant</label>
+                <input class="form-control" asp-for="SupplierReferenceNumber" disabled="@(!Model.IsDraft)" />
+            </div>
+            <div class="col-12">
+                <label class="form-label">Notiz</label>
+                <textarea class="form-control" asp-for="Note" rows="2" disabled="@(!Model.IsDraft)"></textarea>
+            </div>
+            @if (Model.IsDraft)
+            {
+                <div>
+                    <button class="btn btn-primary"><i class="bi bi-check2"></i> Kopf speichern</button>
+                </div>
+            }
+        </div>
+    </form>
+
+    <h3>Positionen</h3>
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th style="width: 40px;">#</th>
+                <th>Artikel / Bezeichnung</th>
+                <th style="width: 110px;" class="text-end">Menge</th>
+                <th style="width: 130px;" class="text-end">Einkauf €</th>
+                @if (Model.IsDraft) { <th style="width: 80px;" class="text-end"></th> }
+            </tr>
+        </thead>
+        <tbody>
+            @if (d.Positions.Count == 0)
+            {
+                <tr class="empty-row"><td colspan="@(Model.IsDraft ? 5 : 4)">Noch keine Positionen.</td></tr>
+            }
+            @foreach (var p in d.Positions.OrderBy(x => x.Position))
+            {
+                var fid = "fp-" + p.Id;
+                <tr>
+                    <td>@p.Position</td>
+                    <td>
+                        @if (!string.IsNullOrEmpty(p.ArticleNumberSnapshot))
+                        {
+                            <code class="text-muted small me-1">@p.ArticleNumberSnapshot</code>
+                        }
+                        @if (Model.IsDraft)
+                        {
+                            <input class="form-control form-control-sm" name="description" form="@fid" value="@p.DescriptionSnapshot" />
+                        }
+                        else
+                        {
+                            @p.DescriptionSnapshot
+                        }
+                    </td>
+                    <td class="text-end">
+                        @if (Model.IsDraft)
+                        {
+                            <input type="number" step="0.01" class="form-control form-control-sm text-end" name="quantity" form="@fid" value="@p.Quantity" />
+                        }
+                        else
+                        {
+                            <strong>@p.Quantity.ToString("N2")</strong>
+                        }
+                    </td>
+                    <td class="text-end">
+                        @if (Model.IsDraft)
+                        {
+                            <input type="number" step="0.01" class="form-control form-control-sm text-end" name="purchasePrice" form="@fid" value="@p.PurchasePrice" />
+                        }
+                        else
+                        {
+                            @(p.PurchasePrice?.ToString("N2") ?? "—")
+                        }
+                    </td>
+                    @if (Model.IsDraft)
+                    {
+                        <td class="text-end text-nowrap">
+                            <button class="btn btn-sm btn-link text-success py-0" form="@fid" title="Speichern"><i class="bi bi-check2"></i></button>
+                            <button class="btn btn-sm btn-link text-danger py-0" form="del-@p.Id" title="Löschen"><i class="bi bi-trash"></i></button>
+                        </td>
+                    }
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (Model.IsDraft)
+    {
+        @foreach (var p in d.Positions)
+        {
+            var fid = "fp-" + p.Id;
+            <form id="@fid" method="post" asp-page-handler="UpdatePosition" asp-route-posId="@p.Id"></form>
+            <form id="del-@p.Id" method="post" asp-page-handler="DeletePosition" asp-route-posId="@p.Id"
+                  onsubmit="return confirm('Position löschen?');"></form>
+        }
+
+        <form method="post" asp-page-handler="AddPosition" class="row g-2 align-items-end mt-3" style="max-width: 700px;">
+            <div class="col-md-9">
+                <label class="form-label">Artikel suchen</label>
+                <partial name="_EntityPicker" model="@(new EntityPickerVm(
+                    DialogId: "wh-article-picker",
+                    InputName: "NewArticleId",
+                    SelectedId: null,
+                    SelectedLabel: null,
+                    SearchUrl: "/Articles/Picker",
+                    EmptyText: "Kein Artikel gewählt",
+                    DialogTitle: "Artikel wählen",
+                    PlaceholderText: "Suche Nummer, Name…",
+                    IconClass: "bi-box-seam"))" />
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i> Position</button>
+            </div>
+        </form>
+    }
+}

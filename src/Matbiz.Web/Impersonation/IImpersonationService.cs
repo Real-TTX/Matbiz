@@ -14,4 +14,9 @@ public interface IImpersonationService
     Task EndAsync(string adminUserId, CancellationToken ct = default);
 
     Task<ImpersonationSession?> GetActiveForAdminAsync(string adminUserId, CancellationToken ct = default);
+
+    /// <summary>Liste aller Admins die aktuell auf den User „remoten" — mit Anzeige-Namen.</summary>
+    Task<List<ActiveImpersonator>> ListActiveOnTargetAsync(string targetUserId, CancellationToken ct = default);
 }
+
+public record ActiveImpersonator(string AdminUserId, string AdminDisplayName, DateTime StartedAt);

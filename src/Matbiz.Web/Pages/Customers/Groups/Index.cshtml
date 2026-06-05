@@ -1,62 +1,52 @@
 @page
 @model Matbiz.Web.Pages.Customers.Groups.IndexModel
-@{ ViewData["Title"] = "Kontaktgruppen"; }
+@{ ViewData["Title"] = "Gruppen"; }
 
 <div class="d-flex align-items-center mb-3">
-    <h1 class="me-auto mb-0">Kontaktgruppen</h1>
+    <h1 class="me-auto mb-0">Gruppen</h1>
     <partial name="_ColumnConfigDropdown" model="@(new ColumnConfigVm(Model.Columns))" />
-    <button type="button" class="btn btn-primary ms-2"
-            onclick="document.getElementById('create-form').classList.toggle('d-none')">
+    <a class="btn btn-primary ms-2" href="/Customers/Groups/Create">
         <i class="bi bi-plus-lg"></i> Neue Gruppe
-    </button>
+    </a>
 </div>
 
-<form id="create-form" method="post" asp-page-handler="Create" class="border rounded p-3 mb-4 bg-light @(Model.ShowCreate ? "" : "d-none")">
-    <div class="row g-3">
-        <div class="col-md-4">
-            <label class="form-label">Name *</label>
-            <input class="form-control" asp-for="Draft.Name" required />
-            <span asp-validation-for="Draft.Name" class="text-danger small"></span>
-        </div>
-        <div class="col-md-5">
-            <label class="form-label">Beschreibung</label>
-            <input class="form-control" asp-for="Draft.Description" />
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Typ</label>
-            <select class="form-select" asp-for="Draft.Kind">
-                <option value="@CustomerGroupKind.Static">Statisch</option>
-                <option value="@CustomerGroupKind.Dynamic">Dynamisch (Regeln)</option>
-            </select>
-        </div>
-    </div>
-    <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check2"></i> Anlegen</button>
-</form>
+<div class="list-toolbar">
+    <input class="form-control form-control-sm list-toolbar-search" data-filter-search="group-list-body" placeholder="Suchen…" />
+    <select class="form-select form-select-sm" onchange="window.location.href='?entity='+this.value">
+        <option value="all" selected="@(Model.Entity == "all")">Alle (@Model.CountAll)</option>
+        <option value="contacts" selected="@(Model.Entity == "contacts")">Kontakte (@Model.CountContacts)</option>
+        <option value="companies" selected="@(Model.Entity == "companies")">Firmen (@Model.CountCompanies)</option>
+    </select>
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="group-list-body">@Model.Items.Count</span> Eintrag/Einträge</span>
+</div>
 
-@if (Model.Items.Count == 0)
-{
-    <div class="empty-state">
-        <i class="bi bi-collection"></i>
-        <p class="mt-2 mb-0 text-muted">Noch keine Kontaktgruppen.</p>
-    </div>
+@{
+    var visibleColCount = Model.Columns.All.Count(c => Model.Columns.Is(c.Key)) + 1;
 }
-else
-{
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
-                {
-                    <th>@col.Label</th>
-                }
-                <th class="text-end">Aktionen</th>
-            </tr>
-        </thead>
-        <tbody>
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
+            {
+                <th>@col.Label</th>
+            }
+            <th class="text-end">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody id="group-list-body" data-paginate data-page-size="25">
+        @if (Model.Items.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="@visibleColCount">Keine Daten</td></tr>
+        }
+        else
+        {
             @foreach (var g in Model.Items)
             {
                 var isDyn = g.Kind == CustomerGroupKind.Dynamic;
-                <tr>
+                var isCompany = g.EntityKind == CustomerGroupEntityKind.Company;
+                var memberCount = isCompany ? g.CompanyMembers.Count : g.Members.Count;
+                <tr data-filter-text="@g.Name @g.Description">
                     @foreach (var col in Model.Columns.All.Where(x => Model.Columns.Is(x.Key)))
                     {
                         <td>
@@ -67,6 +57,16 @@ else
                                         <i class="bi @(isDyn ? "bi-funnel-fill text-info" : "bi-collection-fill text-muted") me-1"></i>
                                         <strong>@g.Name</strong>
                                     </a>
+                                    break;
+                                case "entity":
+                                    @if (isCompany)
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-building"></i> Firmen</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-person-vcard"></i> Kontakte</span>
+                                    }
                                     break;
                                 case "kind":
                                     <span class="badge @(isDyn ? "bg-info-subtle text-info" : "bg-secondary-subtle text-secondary")">
@@ -79,7 +79,7 @@ else
                                 case "members":
                                     @if (!isDyn)
                                     {
-                                        <span class="text-muted"><i class="bi bi-person"></i> @g.Members.Count</span>
+                                        <span class="text-muted"><i class="bi bi-person"></i> @memberCount</span>
                                     }
                                     else
                                     {
@@ -99,6 +99,7 @@ else
                     </td>
                 </tr>
             }
-        </tbody>
-    </table>
-}
+        }
+    </tbody>
+</table>
+<div data-pagination="group-list-body"></div>

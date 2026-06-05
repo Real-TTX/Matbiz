@@ -1,10 +1,15 @@
 using Matbiz.Web.Data;
 using Matbiz.Web.Impersonation;
+using Matbiz.Web.Modules.Articles.Services;
+using Matbiz.Web.Modules.CustomMenu.Services;
 using Matbiz.Web.Modules.Customers.Services;
+using Matbiz.Web.Modules.Articles;
+using Matbiz.Web.Modules.Documents;
 using Matbiz.Web.Modules.Files;
 using Matbiz.Web.Modules.Files.Services;
 using Matbiz.Web.Modules.SystemSettings;
 using Matbiz.Web.Modules.SystemSettings.Services;
+using Matbiz.Web.Modules.Wiki.Services;
 using Matbiz.Web.Modules.Tasks.Services;
 using Matbiz.Web.Modules.Teams.Services;
 using Matbiz.Web.Modules.Users.Services;
@@ -62,9 +67,44 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserAccessor, CurrentUserAccessor>();
 
 builder.Services.AddScoped<CustomerService>();
-builder.Services.AddScoped<CustomerFieldService>();
 builder.Services.AddScoped<CompanyService>();
 builder.Services.AddScoped<AttachedFileService>();
+builder.Services.AddScoped<WikiService>();
+builder.Services.AddScoped<CustomMenuService>();
+builder.Services.AddScoped<NumberRangeService>();
+builder.Services.AddScoped<TaxRateService>();
+builder.Services.AddScoped<ArticleService>();
+builder.Services.AddScoped<Matbiz.Web.Modules.CustomFields.Services.CustomFieldService>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Documents.Services.DocumentService>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Documents.Services.DocumentPdfRenderer>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Documents.Services.XRechnungGenerator>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Accounting.Services.DatevExporter>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Warehouse.Services.WarehouseService>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Warehouse.Services.StockService>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Warehouse.Services.GoodsReceiptService>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Modules.Services.ModuleRegistry>();
+
+// Cross-Modul-Action-Plugins (IEntityActionProvider) — jedes Modul registriert
+// seine eigenen Actions, Verbraucher (Contact/Company-Detail) holt alle via IEnumerable.
+builder.Services.AddScoped<Matbiz.Web.Shared.Actions.IEntityActionProvider, Matbiz.Web.Modules.Documents.Actions.DocumentActionProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Actions.IEntityActionProvider, Matbiz.Web.Modules.Tasks.Actions.TaskActionProvider>();
+
+// Sidebar-Einträge: jedes Modul liefert seine eigenen NavMenuEntries.
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.NavMenuComposer>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.Customers.Navigation.CustomersNavMenuProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.Tasks.Navigation.TasksNavMenuProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.Articles.Navigation.ArticlesNavMenuProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.Documents.Navigation.DocumentsNavMenuProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.Statistics.Navigation.StatisticsNavMenuProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.Wiki.Navigation.WikiNavMenuProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.CustomMenu.Navigation.CustomMenuNavProvider>();
+builder.Services.AddScoped<Matbiz.Web.Shared.Navigation.INavMenuProvider, Matbiz.Web.Modules.Warehouse.Navigation.WarehouseNavMenuProvider>();
+
+// Statistik: jeder Provider implementiert IStatisticsProvider — werden gemeinsam injiziert.
+builder.Services.AddScoped<Matbiz.Web.Modules.Statistics.IStatisticsProvider, Matbiz.Web.Modules.Statistics.Providers.DocumentStatisticsProvider>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Statistics.IStatisticsProvider, Matbiz.Web.Modules.Statistics.Providers.CustomerStatisticsProvider>();
+builder.Services.AddScoped<Matbiz.Web.Modules.Statistics.IStatisticsProvider, Matbiz.Web.Modules.Statistics.Providers.TaskStatisticsProvider>();
+builder.Services.AddSingleton<MarkdownRenderer>();
 builder.Services.AddScoped<TagService>();
 builder.Services.AddScoped<CustomerGroupService>();
 builder.Services.AddScoped<TaskService>();
@@ -84,6 +124,16 @@ using (var scope = app.Services.CreateScope())
     await db.Database.MigrateAsync();
     await SeedAsync(scope.ServiceProvider, app.Configuration, app.Logger);
     await SampleDataSeeder.SeedAsync(scope.ServiceProvider, app.Configuration, app.Logger);
+
+    // Artikel-Stammdaten: Steuersätze + Nummernkreise sicherstellen
+    await scope.ServiceProvider.GetRequiredService<TaxRateService>().EnsureDefaultsAsync();
+    await scope.ServiceProvider.GetRequiredService<NumberRangeService>().EnsureDefaultsAsync();
+
+    // Sample-Artikel + Belege (idempotent, nutzt die Steuersätze von oben)
+    await ArticleAndDocumentSampleSeeder.SeedAsync(scope.ServiceProvider, app.Configuration, app.Logger);
+
+    // Default-Lager sicherstellen
+    await scope.ServiceProvider.GetRequiredService<Matbiz.Web.Modules.Warehouse.Services.WarehouseService>().EnsureDefaultAsync();
 }
 
 // --- Pipeline ----------------------------------------------------------------
@@ -108,6 +158,8 @@ app.MapRazorPages();
 app.MapImpersonationEndpoints();
 app.MapBrandingEndpoints();
 app.MapFileEndpoints();
+app.MapArticleImage();
+app.MapDocumentPdf();
 
 app.Run();
 

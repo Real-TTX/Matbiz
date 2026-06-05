@@ -1,0 +1,70 @@
+@page
+@model Matbiz.Web.Pages.Customers.Groups.CreateModel
+@{ ViewData["Title"] = "Neue Gruppe"; }
+
+<a class="btn btn-link mb-2 ps-0" href="/Customers/Groups"><i class="bi bi-arrow-left"></i> Übersicht</a>
+
+<h1>Neue Gruppe</h1>
+<p class="text-muted">Wähle was gruppiert werden soll (Kontakte oder Firmen) und ob die Mitglieder fest eingetragen oder über Regeln berechnet werden.</p>
+
+<form method="post" class="row g-3" style="max-width: 800px;">
+    <div class="col-md-12">
+        <label class="form-label">Name *</label>
+        <input class="form-control" asp-for="Input.Name" required autofocus />
+        <span asp-validation-for="Input.Name" class="text-danger small"></span>
+    </div>
+
+    <div class="col-md-12">
+        <label class="form-label">Beschreibung</label>
+        <input class="form-control" asp-for="Input.Description" />
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Inhalt</label>
+        <div class="d-flex flex-column gap-2">
+            <label class="radio-card">
+                <input type="radio" asp-for="Input.EntityKind" value="@CustomerGroupEntityKind.Contact" />
+                <div class="radio-card-icon"><i class="bi bi-person-vcard"></i></div>
+                <div>
+                    <strong>Kontakte</strong>
+                    <div class="text-muted small">Personen / Ansprechpartner</div>
+                </div>
+            </label>
+            <label class="radio-card">
+                <input type="radio" asp-for="Input.EntityKind" value="@CustomerGroupEntityKind.Company" />
+                <div class="radio-card-icon"><i class="bi bi-building"></i></div>
+                <div>
+                    <strong>Firmen</strong>
+                    <div class="text-muted small">Organisationen</div>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">Typ</label>
+        <div class="d-flex flex-column gap-2">
+            <label class="radio-card">
+                <input type="radio" asp-for="Input.Kind" value="@CustomerGroupKind.Static" />
+                <div class="radio-card-icon"><i class="bi bi-collection-fill"></i></div>
+                <div>
+                    <strong>Statisch</strong>
+                    <div class="text-muted small">Mitglieder werden manuell hinzugefügt / entfernt</div>
+                </div>
+            </label>
+            <label class="radio-card">
+                <input type="radio" asp-for="Input.Kind" value="@CustomerGroupKind.Dynamic" />
+                <div class="radio-card-icon"><i class="bi bi-funnel-fill"></i></div>
+                <div>
+                    <strong>Dynamisch (Regeln)</strong>
+                    <div class="text-muted small">Mitglieder werden automatisch aus Bedingungen berechnet (Tag, Ort, …)</div>
+                </div>
+            </label>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Anlegen</button>
+        <a class="btn btn-secondary" href="/Customers/Groups"><i class="bi bi-x-lg"></i> Abbrechen</a>
+    </div>
+</form>

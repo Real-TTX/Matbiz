@@ -1,0 +1,76 @@
+@page
+@model Matbiz.Web.Pages.Warehouse.IndexModel
+@{ ViewData["Title"] = "Bestand"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Bestand</h1>
+    <a class="btn btn-primary" href="/Warehouse/Receipts/Edit"><i class="bi bi-plus-lg"></i> Neuer Wareneingang</a>
+</div>
+
+@if (Model.AllWarehouses.Count == 0)
+{
+    <div class="alert alert-info">Noch kein Lager angelegt.</div>
+    return;
+}
+
+<div class="list-toolbar">
+    <input class="form-control form-control-sm list-toolbar-search" data-filter-search="stock-list-body" placeholder="Suche Artikel…" />
+    <select class="form-select form-select-sm" onchange="window.location.href='?warehouseId='+this.value">
+        @foreach (var w in Model.AllWarehouses)
+        {
+            <option value="@w.Id" selected="@(w.Id == Model.ActiveWarehouse?.Id)">@w.Name @(w.IsDefault ? "(Default)" : "")</option>
+        }
+    </select>
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="stock-list-body">@Model.Rows.Count</span> Artikel</span>
+</div>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th style="width: 50px;"></th>
+            <th style="width: 110px;">Nummer</th>
+            <th>Bezeichnung</th>
+            <th style="width: 90px;">Einheit</th>
+            <th style="width: 120px;" class="text-end">Bestand</th>
+            <th style="width: 120px;" class="text-end">Mindest</th>
+            <th style="width: 60px;"></th>
+        </tr>
+    </thead>
+    <tbody id="stock-list-body" data-paginate data-page-size="50">
+        @if (Model.Rows.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="7">Keine Artikel.</td></tr>
+        }
+        else
+        {
+            @foreach (var r in Model.Rows)
+            {
+                <tr data-filter-text="@r.Article.Number @r.Article.Name @r.Article.Category" class="@(r.BelowReorder ? "table-warning" : "")">
+                    <td>
+                        @if (r.Article.ImageBytes is { Length: > 0 })
+                        {
+                            <img src="/articles/@r.Article.Id/image?v=@r.Article.ImageVersion" class="article-thumb" alt="" />
+                        }
+                        else
+                        {
+                            <span class="article-thumb-placeholder"><i class="bi bi-box small"></i></span>
+                        }
+                    </td>
+                    <td><code>@r.Article.Number</code></td>
+                    <td><a class="text-decoration-none text-reset" href="/Articles/Edit/@r.Article.Id"><strong>@r.Article.Name</strong></a></td>
+                    <td>@r.Article.Unit</td>
+                    <td class="text-end"><strong>@r.Quantity.ToString("N2")</strong></td>
+                    <td class="text-end text-muted">@(r.ReorderLevel?.ToString("N2") ?? "—")</td>
+                    <td class="text-center">
+                        @if (r.BelowReorder)
+                        {
+                            <i class="bi bi-exclamation-triangle text-warning" title="Mindestbestand unterschritten"></i>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<div data-pagination="stock-list-body"></div>

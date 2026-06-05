@@ -1,0 +1,41 @@
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor Http
+@using Matbiz.Web.Shared
+
+@{
+    var path = Http.HttpContext?.Request.Path.Value ?? "/";
+
+    // Einstiegspunkte (Sidebar-Direkteinträge) bekommen keinen Crumb.
+    // Standardregel: ≤ 1 Segment. Plus: einige Pfade mit ≥ 2 Segmenten sind
+    // trotzdem direkte Sidebar-Einträge (z.B. /Customers/Groups — eigener Menüpunkt).
+    var segs = path.Trim('/').Split('/', StringSplitOptions.RemoveEmptyEntries);
+    var explicitCrumbs = BreadcrumbsHelper.Get(ViewData);
+
+    bool IsSidebarEntryPoint() =>
+        // Direkter Einstiegspunkt aus der Sidebar — kein Breadcrumb hier.
+        string.Equals(path, "/Customers/Groups", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(path, "/Customers/Fields", StringComparison.OrdinalIgnoreCase);
+
+    if (explicitCrumbs is null && (segs.Length <= 1 || IsSidebarEntryPoint())) { return; }
+
+    var title = ViewData["Title"] as string;
+    var crumbs = explicitCrumbs ?? BreadcrumbsHelper.AutoDerive(path, title);
+    if (crumbs.Count == 0) { return; }
+}
+
+<nav class="breadcrumb-nav" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        @for (int i = 0; i < crumbs.Count; i++)
+        {
+            var c = crumbs[i];
+            var isLast = i == crumbs.Count - 1;
+            if (c.Url is not null && !isLast)
+            {
+                <li class="breadcrumb-item"><a href="@c.Url">@c.Label</a></li>
+            }
+            else
+            {
+                <li class="breadcrumb-item active" aria-current="page">@c.Label</li>
+            }
+        }
+    </ol>
+</nav>

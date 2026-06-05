@@ -30,6 +30,18 @@ public class Company
     [MaxLength(100)]
     public string? Country { get; set; }
 
+    /// <summary>Umsatzsteuer-ID des Käufer-Firma (ZUGFeRD BT-48).</summary>
+    [MaxLength(30)]
+    public string? VatId { get; set; }
+
+    /// <summary>Leitweg-ID für B2G-XRechnung (Bundes/Land/Kommune).</summary>
+    [MaxLength(50)]
+    public string? BuyerReference { get; set; }
+
+    /// <summary>Debitor-Konto für DATEV-Export (automatisch vergeben).</summary>
+    [MaxLength(10)]
+    public string? DebitorAccount { get; set; }
+
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
     public List<Customer> Contacts { get; set; } = new();

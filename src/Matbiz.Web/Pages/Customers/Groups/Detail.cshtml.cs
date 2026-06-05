@@ -11,7 +11,7 @@ public class DetailModel(
     CustomerGroupService groups,
     CustomerService customers,
     CompanyService companies,
-    CustomerFieldService fields) : PageModel
+    Matbiz.Web.Modules.CustomFields.Services.CustomFieldService fields) : PageModel
 {
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty(SupportsGet = true, Name = "tab")] public string? Tab { get; set; }
@@ -21,7 +21,7 @@ public class DetailModel(
     public List<Company> ResolvedCompanies { get; private set; } = new();
     public List<Customer> AllCustomers { get; private set; } = new();
     public List<Company> AllCompanies { get; private set; } = new();
-    public List<CustomerFieldDefinition> CustomFields { get; private set; } = new();
+    public List<Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition> CustomFields { get; private set; } = new();
 
     [BindProperty] public CustomerGroupRules Rules { get; set; } = new();
     [BindProperty] public Guid StaticAddId { get; set; }
@@ -45,7 +45,7 @@ public class DetailModel(
     {
         Group = await groups.GetAsync(Id);
         if (Group is null) return;
-        CustomFields = await fields.ListAsync();
+        CustomFields = await fields.ListAsync(Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact);
         Rules = CustomerGroupService.ParseRules(Group.RulesJson);
         Name = Group.Name;
         Description = Group.Description;

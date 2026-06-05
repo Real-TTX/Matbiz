@@ -1,65 +1,57 @@
 @page
 @model Matbiz.Web.Pages.Users.IndexModel
-@{ ViewData["Title"] = "Benutzer"; }
+@{ ViewData["Title"] = "Benutzer"; Layout = "_AdminLayout"; }
 
 <div class="d-flex align-items-center mb-3">
     <h1 class="me-auto mb-0">Benutzerverwaltung</h1>
-    <button type="button" class="btn btn-primary"
-            onclick="document.getElementById('create-form').classList.toggle('d-none')">
-        <i class="bi bi-person-plus"></i> Neuer Benutzer
-    </button>
+    <a class="btn btn-primary" href="/Users/Edit"><i class="bi bi-person-plus"></i> Neuer Benutzer</a>
 </div>
 
-<form id="create-form" method="post" asp-page-handler="Create" class="border rounded p-3 mb-4 bg-light @(Model.ShowCreate ? "" : "d-none")">
-    <div asp-validation-summary="ModelOnly" class="text-danger small"></div>
-    <div class="row g-3">
-        <div class="col-md-4">
-            <label class="form-label">E-Mail</label>
-            <input class="form-control" asp-for="NewUser.Email" />
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Anzeigename</label>
-            <input class="form-control" asp-for="NewUser.DisplayName" />
-        </div>
-        <div class="col-md-3">
-            <label class="form-label">Passwort</label>
-            <input type="password" class="form-control" asp-for="NewUser.Password" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label">Rolle</label>
-            <select class="form-select" asp-for="NewUser.Role">
-                <option value="User">User</option>
-                <option value="Admin">Admin</option>
-            </select>
-        </div>
-    </div>
-    <button type="submit" class="btn btn-primary mt-3"><i class="bi bi-check2"></i> Anlegen</button>
-</form>
+<div class="list-toolbar">
+    <input class="form-control form-control-sm list-toolbar-search" data-filter-search="user-list-body" placeholder="Suche Name oder E-Mail…" />
+    <select class="form-select form-select-sm" data-filter-attr="role" data-filter-target="user-list-body">
+        <option value="">Alle Rollen</option>
+        <option value="Admin">Admin</option>
+        <option value="User">User</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter-attr="status" data-filter-target="user-list-body">
+        <option value="">Alle Status</option>
+        <option value="active">Nur aktive</option>
+        <option value="inactive">Nur inaktive</option>
+    </select>
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="user-list-body">@Model.Items.Count</span> Eintrag/Einträge</span>
+</div>
 
-@if (Model.Items.Count == 0)
-{
-    <p class="text-muted">Noch keine Benutzer.</p>
-}
-else
-{
-    <table class="table table-hover align-middle">
-        <thead>
-            <tr>
-                <th>Name</th>
-                <th>E-Mail</th>
-                <th>Rolle</th>
-                <th>Status</th>
-                <th class="text-end">Aktionen</th>
-            </tr>
-        </thead>
-        <tbody>
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>E-Mail</th>
+            <th>Rolle</th>
+            <th>Status</th>
+            <th class="text-end">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody id="user-list-body" data-paginate data-page-size="25">
+        @if (Model.Items.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="5">Keine Daten</td></tr>
+        }
+        else
+        {
             @foreach (var u in Model.Items)
             {
                 var isSelf = u.Id == Model.CurrentUserId;
                 var role = Model.PrimaryRole(u.Id);
-                <tr class="@(u.IsActive ? "" : "text-muted")">
+                <tr class="@(u.IsActive ? "" : "text-muted")"
+                    data-filter-text="@(u.DisplayName ?? "") @u.Email"
+                    data-filter-role="@role"
+                    data-filter-status="@(u.IsActive ? "active" : "inactive")">
                     <td>
-                        <strong>@(u.DisplayName ?? u.Email)</strong>
+                        <a class="text-decoration-none text-reset" href="/Users/Edit/@u.Id">
+                            <strong>@(u.DisplayName ?? u.Email)</strong>
+                        </a>
                         @if (isSelf)
                         {
                             <span class="badge bg-info-subtle text-info ms-2">Du</span>
@@ -98,17 +90,13 @@ else
                                 </button>
                             </form>
                         }
-                        @if (!isSelf)
-                        {
-                            <form method="post" asp-page-handler="ToggleActive" asp-route-userId="@u.Id" class="d-inline">
-                                <button class="btn btn-sm btn-outline-secondary">
-                                    @(u.IsActive ? "Deaktivieren" : "Aktivieren")
-                                </button>
-                            </form>
-                        }
+                        <a class="btn btn-sm btn-outline-secondary" href="/Users/Edit/@u.Id" title="Bearbeiten">
+                            <i class="bi bi-pencil"></i>
+                        </a>
                     </td>
                 </tr>
             }
-        </tbody>
-    </table>
-}
+        }
+    </tbody>
+</table>
+<div data-pagination="user-list-body"></div>

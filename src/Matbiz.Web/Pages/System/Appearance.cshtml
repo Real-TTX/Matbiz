@@ -2,110 +2,447 @@
 @model Matbiz.Web.Pages.System.AppearanceModel
 @using Matbiz.Web.Modules.SystemSettings
 @using Matbiz.Web.Modules.SystemSettings.Models
-@{ ViewData["Title"] = "Aussehen"; }
+@{ ViewData["Title"] = "System"; Layout = "_AdminLayout"; }
 
 <h1>System</h1>
-<ul class="nav nav-tabs mb-4">
-    <li class="nav-item"><a class="nav-link active" href="/System/Appearance"><i class="bi bi-palette"></i> Aussehen</a></li>
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item"><a class="nav-link @(Model.Tab == "aussehen" ? "active" : "")" href="?tab=aussehen"><i class="bi bi-palette"></i> Aussehen</a></li>
+    <li class="nav-item"><a class="nav-link @(Model.Tab == "firma" ? "active" : "")" href="?tab=firma"><i class="bi bi-building"></i> Firma</a></li>
+    <li class="nav-item"><a class="nav-link @(Model.Tab == "pdf" ? "active" : "")" href="?tab=pdf"><i class="bi bi-file-earmark-pdf"></i> PDF</a></li>
 </ul>
 
 @if (TempData["StatusMessage"] is string msg)
 {
     <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
 }
+@if (TempData["StatusError"] is string err)
+{
+    <div class="alert alert-warning py-2"><i class="bi bi-exclamation-triangle"></i> @err</div>
+}
 
-<form method="post" asp-page-handler="Save" class="row g-4" style="max-width: 1000px;">
-    <div class="col-md-6">
-        <h3 class="mb-3"><i class="bi bi-type me-2"></i>Identität</h3>
-        <div class="mb-3">
-            <label class="form-label">Anwendungsname</label>
-            <input class="form-control" asp-for="AppName" />
-        </div>
+@if (Model.Tab == "aussehen")
+{
+    <form method="post" asp-page-handler="Save" class="row g-4" style="max-width: 1000px;">
+        <div class="col-md-6">
+            <h3 class="mb-3"><i class="bi bi-type me-2"></i>Identität</h3>
+            <div class="mb-3">
+                <label class="form-label">Anwendungsname</label>
+                <input class="form-control" asp-for="AppName" />
+            </div>
 
-        <div class="alert alert-info small mt-4">
-            <i class="bi bi-info-circle"></i> <strong>Dunkles oder helles Theme</strong> ist eine persönliche Einstellung —
-            jeder Benutzer wählt sie unter <a href="/Account/Manage">Mein Konto</a>.
-        </div>
-    </div>
+            <div class="mb-3">
+                <label class="form-label d-flex justify-content-between">
+                    <span>Logo-Höhe in Sidebar</span>
+                    <span class="text-muted small"><span id="logo-h-val">@Model.LogoHeightPx</span> px</span>
+                </label>
+                <input type="range" class="form-range" min="24" max="96" step="2" asp-for="LogoHeightPx"
+                       oninput="document.getElementById('logo-h-val').textContent=this.value;document.getElementById('logo-h-preview').style.height=this.value+'px';" />
+            </div>
 
-    <div class="col-md-6">
-        <h3 class="mb-3"><i class="bi bi-droplet me-2"></i>Farben</h3>
+            <div class="form-check form-switch mb-3">
+                <input class="form-check-input" type="checkbox" role="switch" asp-for="ShowAppNameUnderLogo" id="showAppName" />
+                <label class="form-check-label" for="showAppName">Anwendungsname unter dem Logo anzeigen</label>
+                <div class="form-text">Aus = nur Logo (sinnvoll wenn der Name schon Teil des Logos ist).</div>
+            </div>
 
-        <label class="form-label">Primärfarbe</label>
-        <div class="color-row">
-            <input type="color" asp-for="PrimaryColor" oninput="document.getElementById('p-prev').style.background=this.value;document.getElementById('p-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
-            <input type="text" class="form-control form-control-sm" asp-for="PrimaryColor" />
-            <span id="p-prev" class="color-preview" style="background: @Model.PrimaryColor; color: @ContrastHelper.OnColor(Model.PrimaryColor);">
-                <i class="bi bi-check2"></i> Primär-Button
-            </span>
-        </div>
+            <div class="mb-3">
+                <label class="form-label">Farbinvertierung Logo</label>
+                <select class="form-select" asp-for="LogoInvertMode"
+                        onchange="applyInvertPreview(this.value)">
+                    <option value="None">Aus — Original</option>
+                    <option value="DarkOnly">Nur im Dark Mode invertieren</option>
+                    <option value="Always">Immer invertieren</option>
+                </select>
+                <div class="form-text">
+                    Für schwarz-auf-transparente Logos, die im Dark Mode unsichtbar wären.
+                    Bei farbigen Logos verfälscht die Invertierung die Farben — dann „Aus" lassen.
+                </div>
+            </div>
+            <script>
+                function applyInvertPreview(mode) {
+                    var el = document.getElementById('logo-h-preview');
+                    if (!el) return;
+                    var darkActive = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+                    var invert = (mode === 'Always') || (mode === 'DarkOnly' && darkActive);
+                    el.style.filter = invert ? 'invert(1)' : '';
+                }
+            </script>
 
-        <label class="form-label">Akzentfarbe 1</label>
-        <div class="color-row">
-            <input type="color" asp-for="AccentColor1" oninput="document.getElementById('a1-prev').style.background=this.value;document.getElementById('a1-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
-            <input type="text" class="form-control form-control-sm" asp-for="AccentColor1" />
-            <span id="a1-prev" class="color-preview" style="background: @Model.AccentColor1; color: @ContrastHelper.OnColor(Model.AccentColor1);">
-                <i class="bi bi-star"></i> Akzent 1
-            </span>
-        </div>
-
-        <label class="form-label">Akzentfarbe 2</label>
-        <div class="color-row">
-            <input type="color" asp-for="AccentColor2" oninput="document.getElementById('a2-prev').style.background=this.value;document.getElementById('a2-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
-            <input type="text" class="form-control form-control-sm" asp-for="AccentColor2" />
-            <span id="a2-prev" class="color-preview" style="background: @Model.AccentColor2; color: @ContrastHelper.OnColor(Model.AccentColor2);">
-                <i class="bi bi-tag"></i> Akzent 2
-            </span>
-        </div>
-
-        <div class="form-text">
-            Die Schriftfarbe in den Vorschauen wird automatisch <strong>hell oder dunkel</strong> gewählt — je nachdem,
-            wie hell die Hintergrundfarbe ist (W3C-Luminanz).
-        </div>
-    </div>
-
-    <div>
-        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
-    </div>
-</form>
-
-<hr class="my-4" style="max-width: 1000px;" />
-
-<div style="max-width: 1000px;">
-    <h3 class="mb-3"><i class="bi bi-image me-2"></i>Logo</h3>
-    <div class="row g-3 align-items-end">
-        <div class="col-md-4">
             @if (Model.Current.LogoBytes is { Length: > 0 })
             {
-                <img src="/branding/logo?v=@Model.Current.Version" alt="Logo"
-                     style="max-height: 80px; background: var(--bg-subtle); padding: 8px; border-radius: 4px;" />
-            }
-            else
-            {
-                <div class="text-muted">Noch kein Logo hochgeladen.</div>
-            }
-        </div>
-        <div class="col-md-8">
-            <form method="post" asp-page-handler="UploadLogo" enctype="multipart/form-data" class="d-flex gap-2 align-items-end">
-                <div class="flex-grow-1">
-                    <input asp-for="Logo" type="file" class="form-control" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
-                    <div class="form-text">PNG, JPEG, SVG oder WebP — max. 2 MB.</div>
+                <div class="border rounded p-2 mb-3" style="background: var(--bg-subtle);">
+                    <div class="text-muted small mb-1">Vorschau Sidebar:</div>
+                    <img id="logo-h-preview" src="/branding/logo?v=@Model.Current.Version"
+                         style="height: @(Model.LogoHeightPx)px; display: block;" alt="Logo" />
                 </div>
-                <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Hochladen</button>
+            }
+            <div class="alert alert-info small mt-4">
+                <i class="bi bi-info-circle"></i> <strong>Dunkles oder helles Theme</strong> ist eine persönliche Einstellung —
+                jeder Benutzer wählt sie unter <a href="/Account/Manage">Mein Konto</a>.
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h3 class="mb-3"><i class="bi bi-droplet me-2"></i>Farben</h3>
+
+            <label class="form-label">Primärfarbe</label>
+            <div class="color-row">
+                <input type="color" asp-for="PrimaryColor" oninput="document.getElementById('p-prev').style.background=this.value;document.getElementById('p-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
+                <input type="text" class="form-control form-control-sm" asp-for="PrimaryColor" />
+                <span id="p-prev" class="color-preview" style="background: @Model.PrimaryColor; color: @ContrastHelper.OnColor(Model.PrimaryColor);">
+                    <i class="bi bi-check2"></i> Primär-Button
+                </span>
+            </div>
+
+            <label class="form-label">Akzentfarbe 1</label>
+            <div class="color-row">
+                <input type="color" asp-for="AccentColor1" oninput="document.getElementById('a1-prev').style.background=this.value;document.getElementById('a1-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
+                <input type="text" class="form-control form-control-sm" asp-for="AccentColor1" />
+                <span id="a1-prev" class="color-preview" style="background: @Model.AccentColor1; color: @ContrastHelper.OnColor(Model.AccentColor1);">
+                    <i class="bi bi-star"></i> Akzent 1
+                </span>
+            </div>
+
+            <label class="form-label">Akzentfarbe 2</label>
+            <div class="color-row">
+                <input type="color" asp-for="AccentColor2" oninput="document.getElementById('a2-prev').style.background=this.value;document.getElementById('a2-prev').style.color=onColor(this.value);this.nextElementSibling.value=this.value" />
+                <input type="text" class="form-control form-control-sm" asp-for="AccentColor2" />
+                <span id="a2-prev" class="color-preview" style="background: @Model.AccentColor2; color: @ContrastHelper.OnColor(Model.AccentColor2);">
+                    <i class="bi bi-tag"></i> Akzent 2
+                </span>
+            </div>
+        </div>
+
+        <div>
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        </div>
+    </form>
+
+    <hr class="my-4" style="max-width: 1000px;" />
+
+    <div style="max-width: 1000px;">
+        <h3 class="mb-3"><i class="bi bi-image me-2"></i>Logo</h3>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
                 @if (Model.Current.LogoBytes is { Length: > 0 })
                 {
-                    <button type="submit" formaction="?handler=ClearLogo" class="btn btn-outline-danger"
-                            onclick="return confirm('Logo entfernen?');">
-                        <i class="bi bi-trash"></i>
-                    </button>
+                    <div class="logo-preview-checker">
+                        <img src="/branding/logo?v=@Model.Current.Version" alt="Logo" style="max-height: 80px;" />
+                    </div>
+                    <div class="form-text small">
+                        Karierter Hintergrund = Transparenz<br />
+                        Format: <code>@(Model.Current.LogoContentType ?? "unbekannt")</code> ·
+                        @((Model.Current.LogoBytes.Length / 1024.0).ToString("N1")) KB
+                        @{
+                            var isSvg = Model.Current.LogoContentType?.Contains("svg") == true;
+                        }
+                        @if (isSvg)
+                        {
+                            <br /><span class="text-warning"><i class="bi bi-exclamation-triangle"></i> SVG — Hintergrund-Filter geht nur mit PNG/JPG.</span>
+                        }
+                    </div>
                 }
-            </form>
+                else
+                {
+                    <div class="text-muted">Noch kein Logo hochgeladen.</div>
+                }
+            </div>
+            <div class="col-md-8">
+                <form method="post" asp-page-handler="UploadLogo" enctype="multipart/form-data" class="row g-2">
+                    <div class="col-12">
+                        <input asp-for="Logo" type="file" class="form-control" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+                        <div class="form-text">PNG, JPEG, SVG oder WebP — max. 2 MB.</div>
+                    </div>
+                    <div class="col-12">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="LogoRemoveWhite" id="logoRmWhite" />
+                            <label class="form-check-label" for="logoRmWhite">Weißen Hintergrund entfernen (→ transparent)</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small d-flex justify-content-between">
+                            <span>Weiß-Toleranz</span>
+                            <span class="text-muted"><span id="white-tol-val">@Model.LogoWhiteTolerance</span>%</span>
+                        </label>
+                        <input type="range" class="form-range" min="50" max="100" step="1" asp-for="LogoWhiteTolerance"
+                               oninput="document.getElementById('white-tol-val').textContent=this.value" />
+                        <div class="form-text small">Niedriger = aggressiver, entfernt auch helle Grautöne.</div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Einfärben in (optional)</label>
+                        <div class="d-flex gap-2">
+                            <input type="color" asp-for="LogoRecolorHex" value="@(Model.LogoRecolorHex ?? "#000000")"
+                                   onchange="document.getElementById('recolor-hex').value=this.value" style="width:60px;" />
+                            <input type="text" id="recolor-hex" class="form-control form-control-sm"
+                                   asp-for="LogoRecolorHex" placeholder="leer = Originalfarben" />
+                        </div>
+                        <div class="form-text small">Macht das Logo einfarbig — z.B. komplett schwarz oder weiß.</div>
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-2 flex-wrap">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Hochladen + Anwenden</button>
+                        @if (Model.Current.LogoBytes is { Length: > 0 })
+                        {
+                            <button type="submit" formaction="?handler=ReprocessLogo" class="btn btn-outline-primary"
+                                    title="Aktuelle Einstellungen auf gespeichertes Logo neu anwenden">
+                                <i class="bi bi-arrow-clockwise"></i> Neu prozessieren
+                            </button>
+                            <button type="submit" formaction="?handler=ClearLogo" class="btn btn-outline-danger"
+                                    onclick="return confirm('Logo entfernen?');">
+                                <i class="bi bi-trash"></i> Entfernen
+                            </button>
+                        }
+                    </div>
+
+                    @if (Model.Current.LogoBytes is { Length: > 0 })
+                    {
+                        <div class="col-12 mt-3">
+                            <div class="card border-light">
+                                <div class="card-body py-2">
+                                    <div class="small text-muted mb-2"><i class="bi bi-magic"></i> Schnell-Aktionen — wenden direkt auf das aktuelle Logo an:</div>
+                                    <div class="d-flex gap-2 flex-wrap">
+                                        <button type="submit" formaction="?handler=QuickBlackTransparent"
+                                                class="btn btn-sm btn-dark">
+                                            <i class="bi bi-circle-fill"></i> Schwarz + transparent
+                                        </button>
+                                        <button type="submit" formaction="?handler=QuickWhiteTransparent"
+                                                class="btn btn-sm btn-light border">
+                                            <i class="bi bi-circle"></i> Weiß + transparent
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                </form>
+            </div>
+        </div>
+
+        <hr class="my-4" />
+
+        <h3 class="mb-3"><i class="bi bi-moon-stars me-2"></i>Logo für Dark Mode (optional)</h3>
+        <div class="row g-3 align-items-end">
+            <div class="col-md-4">
+                @if (Model.Current.LogoDarkBytes is { Length: > 0 })
+                {
+                    <div class="logo-preview-checker" data-theme="dark">
+                        <img src="/branding/logo/dark?v=@Model.Current.Version" alt="Dark Logo" style="max-height: 80px;" />
+                    </div>
+                    <div class="form-text small">
+                        Format: <code>@(Model.Current.LogoDarkContentType ?? "unbekannt")</code> ·
+                        @((Model.Current.LogoDarkBytes.Length / 1024.0).ToString("N1")) KB
+                    </div>
+                }
+                else
+                {
+                    <div class="text-muted">Kein Dark-Mode-Logo gesetzt.<br />Das Light-Logo wird auch im Dark Mode verwendet.</div>
+                }
+            </div>
+            <div class="col-md-8">
+                <form method="post" asp-page-handler="UploadDarkLogo" enctype="multipart/form-data" class="row g-2">
+                    <div class="col-12">
+                        <input asp-for="LogoDark" type="file" class="form-control" accept="image/png,image/jpeg,image/webp" />
+                        <div class="form-text small">Lade hier eine helle Variante deines Logos hoch (z.B. weiße Schrift statt schwarz).</div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" role="switch" asp-for="LogoDarkRemoveWhite" id="logoDarkRmWhite" />
+                            <label class="form-check-label" for="logoDarkRmWhite">Hintergrund automatisch entfernen</label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small">Optional einfärben in</label>
+                        <input type="color" asp-for="LogoDarkRecolorHex" value="@(Model.LogoDarkRecolorHex ?? "#FFFFFF")" style="width:60px; height:32px;" />
+                    </div>
+                    <div class="col-12 d-flex gap-2 mt-2 flex-wrap">
+                        <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Dark-Logo hochladen</button>
+                        @if (Model.Current.LogoDarkBytes is { Length: > 0 })
+                        {
+                            <button type="submit" formaction="?handler=ClearDarkLogo" class="btn btn-outline-danger"
+                                    onclick="return confirm('Dark-Mode-Logo entfernen?');">
+                                <i class="bi bi-trash"></i> Entfernen
+                            </button>
+                        }
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
+}
+else if (Model.Tab == "firma")
+{
+    <form method="post" asp-page-handler="SaveCompany" class="row g-3" style="max-width: 1000px;">
+        <h3 class="mt-2"><i class="bi bi-building me-2"></i>Firma / Adresse</h3>
+
+        <div class="col-md-12">
+            <label class="form-label">Vollständiger Firmenname (für Rechnungen)</label>
+            <input class="form-control" asp-for="Company.CompanyLegalName" placeholder="z.B. Mustermann GmbH" />
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">Straße + Hausnummer</label>
+            <input class="form-control" asp-for="Company.CompanyStreet" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Geschäftsführer / Inhaber</label>
+            <input class="form-control" asp-for="Company.ManagingDirector" />
+        </div>
+        <div class="col-md-3">
+            <label class="form-label">PLZ</label>
+            <input class="form-control" asp-for="Company.CompanyPostalCode" />
+        </div>
+        <div class="col-md-5">
+            <label class="form-label">Ort</label>
+            <input class="form-control" asp-for="Company.CompanyCity" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Land</label>
+            <input class="form-control" asp-for="Company.CompanyCountry" placeholder="Deutschland" />
+        </div>
+
+        <h3 class="mt-4"><i class="bi bi-telephone me-2"></i>Kontakt</h3>
+        <div class="col-md-4">
+            <label class="form-label">E-Mail</label>
+            <input class="form-control" type="email" asp-for="Company.CompanyEmail" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Telefon</label>
+            <input class="form-control" asp-for="Company.CompanyPhone" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">Website</label>
+            <input class="form-control" asp-for="Company.CompanyWebsite" placeholder="https://…" />
+        </div>
+
+        <h3 class="mt-4"><i class="bi bi-bank me-2"></i>Steuer- &amp; Bankdaten</h3>
+        <div class="col-md-6">
+            <label class="form-label">Umsatzsteuer-ID (USt-ID)</label>
+            <input class="form-control" asp-for="Company.VatId" placeholder="DE123456789" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Steuernummer (Finanzamt)</label>
+            <input class="form-control" asp-for="Company.TaxNumber" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Registergericht</label>
+            <input class="form-control" asp-for="Company.RegistrationCourt" placeholder="Amtsgericht München" />
+            <div class="form-text">Pflichtangabe für GmbH/UG/AG (§ 35a GmbHG).</div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Handelsregister-Nummer</label>
+            <input class="form-control" asp-for="Company.RegistrationNumber" placeholder="HRB 12345" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">Bank</label>
+            <input class="form-control" asp-for="Company.BankName" />
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">IBAN</label>
+            <input class="form-control" asp-for="Company.Iban" />
+        </div>
+        <div class="col-md-2">
+            <label class="form-label">BIC</label>
+            <input class="form-control" asp-for="Company.Bic" />
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        </div>
+    </form>
+}
+else if (Model.Tab == "pdf")
+{
+    <form method="post" asp-page-handler="SavePdf" class="row g-3" style="max-width: 900px;">
+        <h3 class="mt-2"><i class="bi bi-file-earmark-pdf me-2"></i>PDF-Einstellungen</h3>
+        <p class="text-muted small">Diese Texte erscheinen auf jedem ausgehenden Beleg (Rechnung, Angebot, …).</p>
+
+        <h4 class="mt-3 mb-2">Layout</h4>
+        <div class="col-12">
+            <div class="row g-3">
+                @{
+                    var templates = new[]
+                    {
+                        ("Classic", "Klassisch", "Logo oben links, Firma oben rechts, schlichter schwarz-weiß Stil."),
+                        ("Modern",  "Modern",    "Farbiger Balken oben in Primärfarbe, Akzent unter dem Titel."),
+                        ("Minimal", "Minimal",   "Kein Logo-Balken, nur dünne Trennlinie. Reine Typografie.")
+                    };
+                }
+                @foreach (var (key, name, desc) in templates)
+                {
+                    var isActive = (Model.Company.PdfTemplate ?? "Classic") == key;
+                    <div class="col-md-4">
+                        <label class="pdf-template-card @(isActive ? "active" : "")">
+                            <input type="radio" name="Company.PdfTemplate" value="@key" @(isActive ? "checked" : "") class="d-none" />
+                            <div class="pdf-template-preview">
+                                <partial name="_PdfTemplatePreview" model="@key" />
+                            </div>
+                            <div class="pdf-template-info">
+                                <strong>@name</strong>
+                                <div class="small text-muted">@desc</div>
+                            </div>
+                        </label>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <h4 class="mt-4 mb-2">Kontorahmen (DATEV-Export)</h4>
+        <div class="col-md-6">
+            <label class="form-label">Kontorahmen</label>
+            <select class="form-select" asp-for="Company.ChartOfAccounts">
+                <option value="SKR03">SKR03 — Standard (KMU, Handel, Dienstleister)</option>
+                <option value="SKR04">SKR04 — Bilanzgliederung (Kapitalgesellschaften)</option>
+            </select>
+            <div class="form-text">Wirkt auf die Erlöskonten im DATEV-CSV-Export.</div>
+        </div>
+
+        <h4 class="mt-4 mb-2">Texte</h4>
+
+        <input type="hidden" asp-for="Company.CompanyLegalName" />
+        <input type="hidden" asp-for="Company.CompanyStreet" />
+        <input type="hidden" asp-for="Company.CompanyPostalCode" />
+        <input type="hidden" asp-for="Company.CompanyCity" />
+        <input type="hidden" asp-for="Company.CompanyCountry" />
+        <input type="hidden" asp-for="Company.CompanyEmail" />
+        <input type="hidden" asp-for="Company.CompanyPhone" />
+        <input type="hidden" asp-for="Company.CompanyWebsite" />
+        <input type="hidden" asp-for="Company.VatId" />
+        <input type="hidden" asp-for="Company.TaxNumber" />
+        <input type="hidden" asp-for="Company.ManagingDirector" />
+        <input type="hidden" asp-for="Company.RegistrationCourt" />
+        <input type="hidden" asp-for="Company.RegistrationNumber" />
+        <input type="hidden" asp-for="Company.BankName" />
+        <input type="hidden" asp-for="Company.Iban" />
+        <input type="hidden" asp-for="Company.Bic" />
 
 <script>
-    // Auto-contrast helper used by the inline color pickers above.
+    // Aktive Klasse auf Klick — Bootstrap-Karten-Look ohne JS-Framework
+    document.querySelectorAll('.pdf-template-card input[type=radio]').forEach(function (r) {
+        r.addEventListener('change', function () {
+            document.querySelectorAll('.pdf-template-card').forEach(function (c) { c.classList.remove('active'); });
+            r.closest('.pdf-template-card').classList.add('active');
+        });
+    });
+</script>
+
+        <div class="col-12">
+            <label class="form-label">Standard-Zahlungsbedingung</label>
+            <input class="form-control" asp-for="Company.DefaultPaymentTerms"
+                   placeholder="Zahlbar innerhalb 14 Tagen netto ohne Abzug." />
+            <div class="form-text">Wird beim Erstellen einer Rechnung vorbelegt — kann pro Beleg überschrieben werden.</div>
+        </div>
+        <div class="col-12">
+            <label class="form-label">Fußzeile auf jedem PDF</label>
+            <textarea class="form-control" asp-for="Company.PdfFooterText" rows="4"
+                      placeholder="Frei wählbar — z.B. AGB-Hinweis, Handelsregister, weitere rechtliche Pflichtangaben."></textarea>
+            <div class="form-text">Erscheint zusätzlich zu den Firmen-/Bankdaten im Fuß des PDF.</div>
+        </div>
+
+        <div class="d-flex gap-2 mt-4">
+            <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        </div>
+    </form>
+}
+
+<script>
     function onColor(hex) {
         if (!hex || hex[0] !== '#' || hex.length < 7) return '#fff';
         const r = parseInt(hex.substr(1, 2), 16);

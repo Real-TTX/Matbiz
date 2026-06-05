@@ -1,9 +1,12 @@
 using Matbiz.Web.Data;
+using Matbiz.Web.Modules.CustomMenu.Models;
+using Matbiz.Web.Modules.CustomMenu.Services;
 using Matbiz.Web.Modules.Customers.Models;
 using Matbiz.Web.Modules.Customers.Services;
 using Matbiz.Web.Modules.Files.Models;
 using Matbiz.Web.Modules.Files.Services;
 using Matbiz.Web.Modules.Users.Services;
+using Matbiz.Web.Shared;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -16,7 +19,9 @@ public class DetailModel(
     CompanyService companies,
     TagService tags,
     AttachedFileService attachedFiles,
-    UserAdminService userAdmin) : PageModel
+    UserAdminService userAdmin,
+    CustomMenuService customMenu,
+    ICurrentUserAccessor currentUser) : PageModel
 {
     [BindProperty(SupportsGet = true)] public Guid Id { get; set; }
     [BindProperty(SupportsGet = true, Name = "tab")] public string? Tab { get; set; }
@@ -36,13 +41,45 @@ public class DetailModel(
     public string ActorName(string userId) =>
         UsersById.TryGetValue(userId, out var u) ? (u.DisplayName ?? u.Email ?? userId) : userId;
 
-    public string ActiveTab => Tab?.ToLowerInvariant() switch
+    public string ActiveTab
     {
-        "kontakte" => "kontakte",
-        "historie" => "historie",
-        "dateien" => "dateien",
-        _ => "stammdaten"
-    };
+        get
+        {
+            var t = Tab?.ToLowerInvariant();
+            if (t is "kontakte" or "stammdaten" or "dateien" or "historie") return t;
+            if (t is { Length: > 5 } tt && tt.StartsWith("tool-", StringComparison.OrdinalIgnoreCase)) return tt;
+            return "historie";
+        }
+    }
+
+    public List<CustomMenuItem> ToolItems { get; private set; } = new();
+
+    public CustomMenuItem? ActiveTool =>
+        ActiveTab.StartsWith("tool-", StringComparison.OrdinalIgnoreCase)
+        && Guid.TryParse(ActiveTab["tool-".Length..], out var tid)
+            ? ToolItems.FirstOrDefault(t => t.Id == tid) : null;
+
+    public string? ActiveToolUrl => ActiveTool is null
+        ? null : CustomMenuService.SubstituteUrl(ActiveTool.Url, BuildPlaceholderMap());
+
+    private Dictionary<string, string?> BuildPlaceholderMap()
+    {
+        var c = Current;
+        if (c is null) return new();
+        return new()
+        {
+            ["Id"] = c.Id.ToString(),
+            ["Name"] = c.Name,
+            ["Email"] = c.Email,
+            ["Phone"] = c.Phone,
+            ["Website"] = null, // Property fehlt aktuell — Platzhalter bleibt leer
+            ["Industry"] = null,
+            ["Street"] = c.Street,
+            ["City"] = c.City,
+            ["PostalCode"] = c.PostalCode,
+            ["Country"] = c.Country,
+        };
+    }
 
     public async Task<IActionResult> OnGetAsync()
     {
@@ -52,6 +89,8 @@ public class DetailModel(
         LibraryFiles = await attachedFiles.ListForOwnerAsync(AttachedFileOwnerType.CompanyLibrary, Id);
         History = await companies.GetHistoryAsync(Id, IncludeContacts);
         UsersById = (await userAdmin.ListAsync()).ToDictionary(u => u.Id, u => u);
+        var ctx = await currentUser.GetAsync();
+        ToolItems = await customMenu.ListVisibleAsync(ctx.UserId, CustomMenuContext.CompanyDetail);
         Input = Current;
         return Page();
     }
@@ -60,6 +99,18 @@ public class DetailModel(
     {
         if (!string.IsNullOrWhiteSpace(NewNote))
             await companies.AddNoteAsync(Id, NewNote);
+        return RedirectToPage(new { id = Id, tab = "historie", includeContacts = IncludeContacts });
+    }
+
+    public async Task<IActionResult> OnPostEditHistoryAsync(Guid entryId, string? details)
+    {
+        await companies.UpdateHistoryAsync(entryId, details ?? "");
+        return RedirectToPage(new { id = Id, tab = "historie", includeContacts = IncludeContacts });
+    }
+
+    public async Task<IActionResult> OnPostDeleteHistoryAsync(Guid entryId)
+    {
+        await companies.DeleteHistoryAsync(entryId);
         return RedirectToPage(new { id = Id, tab = "historie", includeContacts = IncludeContacts });
     }
 

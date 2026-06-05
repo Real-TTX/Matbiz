@@ -1,9 +1,16 @@
+using Matbiz.Web.Modules.Articles.Models;
+using Matbiz.Web.Modules.CustomFields.Models;
+using Matbiz.Web.Modules.Documents.Models;
+using Matbiz.Web.Modules.Modules.Models;
+using Matbiz.Web.Modules.Warehouse.Models;
+using Matbiz.Web.Modules.CustomMenu.Models;
 using Matbiz.Web.Modules.Customers.Models;
 using Matbiz.Web.Modules.Files.Models;
 using Matbiz.Web.Modules.SystemSettings.Models;
 using Matbiz.Web.Modules.Tasks.Models;
 using Matbiz.Web.Modules.Teams.Models;
 using Matbiz.Web.Modules.Users.Models;
+using Matbiz.Web.Modules.Wiki.Models;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
@@ -14,8 +21,10 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 {
     public DbSet<Customer> Customers => Set<Customer>();
     public DbSet<Company> Companies => Set<Company>();
-    public DbSet<CustomerFieldDefinition> CustomerFieldDefinitions => Set<CustomerFieldDefinition>();
-    public DbSet<CustomerFieldValue> CustomerFieldValues => Set<CustomerFieldValue>();
+    // Custom-Fields polymorph (Modules/CustomFields)
+    public DbSet<CustomFieldDefinition> CustomFieldDefinitions => Set<CustomFieldDefinition>();
+    public DbSet<CustomFieldValue> CustomFieldValues => Set<CustomFieldValue>();
+    public DbSet<CustomFieldSection> CustomFieldSections => Set<CustomFieldSection>();
     public DbSet<CustomerHistoryEntry> CustomerHistoryEntries => Set<CustomerHistoryEntry>();
     public DbSet<CompanyHistoryEntry> CompanyHistoryEntries => Set<CompanyHistoryEntry>();
     public DbSet<CompanyGroupMember> CompanyGroupMembers => Set<CompanyGroupMember>();
@@ -40,20 +49,45 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
 
     public DbSet<AttachedFile> AttachedFiles => Set<AttachedFile>();
 
+    public DbSet<CustomMenuItem> CustomMenuItems => Set<CustomMenuItem>();
+    public DbSet<CustomMenuItemDepartment> CustomMenuItemDepartments => Set<CustomMenuItemDepartment>();
+    public DbSet<CustomMenuItemTeam> CustomMenuItemTeams => Set<CustomMenuItemTeam>();
+
+    public DbSet<WikiPage> WikiPages => Set<WikiPage>();
+
+    public DbSet<Article> Articles => Set<Article>();
+    public DbSet<TaxRate> TaxRates => Set<TaxRate>();
+    public DbSet<NumberRange> NumberRanges => Set<NumberRange>();
+    public DbSet<Document> Documents => Set<Document>();
+    public DbSet<DocumentPosition> DocumentPositions => Set<DocumentPosition>();
+    public DbSet<ModuleSetting> ModuleSettings => Set<ModuleSetting>();
+    public DbSet<NavMenuLayout> NavMenuLayouts => Set<NavMenuLayout>();
+
+    public DbSet<Matbiz.Web.Modules.Warehouse.Models.Warehouse> Warehouses => Set<Matbiz.Web.Modules.Warehouse.Models.Warehouse>();
+    public DbSet<StockLevel> StockLevels => Set<StockLevel>();
+    public DbSet<StockMovement> StockMovements => Set<StockMovement>();
+    public DbSet<GoodsReceipt> GoodsReceipts => Set<GoodsReceipt>();
+    public DbSet<GoodsReceiptPosition> GoodsReceiptPositions => Set<GoodsReceiptPosition>();
+    public DbSet<WikiPageDepartment> WikiPageDepartments => Set<WikiPageDepartment>();
+    public DbSet<WikiPageTeam> WikiPageTeams => Set<WikiPageTeam>();
+    public DbSet<WikiPageEditor> WikiPageEditors => Set<WikiPageEditor>();
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         base.OnModelCreating(b);
 
-        b.Entity<CustomerFieldDefinition>()
-            .HasIndex(x => x.Key).IsUnique();
-
-        b.Entity<CustomerFieldValue>()
-            .HasIndex(x => new { x.CustomerId, x.FieldDefinitionId }).IsUnique();
-
-        b.Entity<CustomerFieldValue>()
-            .HasOne(x => x.Customer)
-            .WithMany(x => x.CustomFieldValues)
-            .HasForeignKey(x => x.CustomerId)
+        // Polymorphic Custom Fields (Modules/CustomFields)
+        b.Entity<CustomFieldDefinition>()
+            .HasIndex(x => new { x.EntityType, x.Key }).IsUnique();
+        b.Entity<CustomFieldDefinition>()
+            .HasOne(d => d.Section).WithMany(s => s.Fields).HasForeignKey(d => d.SectionId)
+            .OnDelete(DeleteBehavior.SetNull);
+        b.Entity<CustomFieldSection>()
+            .HasIndex(x => new { x.EntityType, x.Name }).IsUnique();
+        b.Entity<CustomFieldValue>()
+            .HasIndex(x => new { x.EntityType, x.EntityId, x.FieldDefinitionId }).IsUnique();
+        b.Entity<CustomFieldValue>()
+            .HasOne(x => x.FieldDefinition).WithMany().HasForeignKey(x => x.FieldDefinitionId)
             .OnDelete(DeleteBehavior.Cascade);
 
         b.Entity<CustomerHistoryEntry>()
@@ -135,5 +169,106 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         b.Entity<Department>().HasIndex(x => x.Name).IsUnique();
 
         b.Entity<AttachedFile>().HasIndex(x => new { x.OwnerType, x.OwnerId });
+
+        b.Entity<CustomMenuItemDepartment>().HasKey(x => new { x.CustomMenuItemId, x.DepartmentId });
+        b.Entity<CustomMenuItemDepartment>()
+            .HasOne(x => x.CustomMenuItem).WithMany(i => i.Departments).HasForeignKey(x => x.CustomMenuItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<CustomMenuItemDepartment>()
+            .HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<CustomMenuItemTeam>().HasKey(x => new { x.CustomMenuItemId, x.TeamId });
+        b.Entity<CustomMenuItemTeam>()
+            .HasOne(x => x.CustomMenuItem).WithMany(i => i.Teams).HasForeignKey(x => x.CustomMenuItemId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<CustomMenuItemTeam>()
+            .HasOne(x => x.Team).WithMany().HasForeignKey(x => x.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<WikiPage>().HasIndex(x => x.Slug).IsUnique();
+
+        b.Entity<Article>().HasIndex(x => x.Number).IsUnique();
+        b.Entity<Article>().Property(x => x.NetPrice).HasPrecision(18, 4);
+        b.Entity<Article>().Property(x => x.PurchasePrice).HasPrecision(18, 4);
+        b.Entity<Article>()
+            .HasOne(x => x.TaxRate).WithMany().HasForeignKey(x => x.TaxRateId)
+            .OnDelete(DeleteBehavior.Restrict);
+        b.Entity<TaxRate>().Property(x => x.Percent).HasPrecision(6, 3);
+        b.Entity<NumberRange>().HasIndex(x => x.Key).IsUnique();
+
+        b.Entity<ModuleSetting>().HasKey(x => x.Key);
+
+        // === Warehouse ===
+        b.Entity<Matbiz.Web.Modules.Warehouse.Models.Warehouse>().HasIndex(x => x.Name);
+        b.Entity<StockLevel>().Property(x => x.Quantity).HasPrecision(18, 4);
+        b.Entity<StockLevel>().Property(x => x.ReorderLevel).HasPrecision(18, 4);
+        b.Entity<StockLevel>().HasIndex(x => new { x.ArticleId, x.WarehouseId }).IsUnique();
+        b.Entity<StockLevel>().HasOne(x => x.Article).WithMany().HasForeignKey(x => x.ArticleId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<StockLevel>().HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+
+        b.Entity<StockMovement>().Property(x => x.Quantity).HasPrecision(18, 4);
+        b.Entity<StockMovement>().HasIndex(x => new { x.ArticleId, x.WarehouseId, x.At });
+        b.Entity<StockMovement>().HasOne(x => x.Article).WithMany().HasForeignKey(x => x.ArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<StockMovement>().HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+
+        b.Entity<GoodsReceipt>().HasIndex(x => x.Number).IsUnique();
+        b.Entity<GoodsReceipt>().HasOne(x => x.Warehouse).WithMany().HasForeignKey(x => x.WarehouseId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<GoodsReceipt>().HasOne(x => x.SupplierCompany).WithMany().HasForeignKey(x => x.SupplierCompanyId).OnDelete(DeleteBehavior.SetNull);
+
+        b.Entity<GoodsReceiptPosition>().Property(x => x.Quantity).HasPrecision(18, 4);
+        b.Entity<GoodsReceiptPosition>().Property(x => x.PurchasePrice).HasPrecision(18, 4);
+        b.Entity<GoodsReceiptPosition>().HasOne(x => x.Receipt).WithMany(r => r.Positions).HasForeignKey(x => x.ReceiptId).OnDelete(DeleteBehavior.Cascade);
+        b.Entity<GoodsReceiptPosition>().HasOne(x => x.Article).WithMany().HasForeignKey(x => x.ArticleId).OnDelete(DeleteBehavior.Restrict);
+        b.Entity<GoodsReceiptPosition>().HasIndex(x => new { x.ReceiptId, x.Position });
+
+        b.Entity<Document>().HasIndex(x => new { x.Type, x.Number }).IsUnique();
+        b.Entity<Document>().Property(x => x.NetTotal).HasPrecision(18, 4);
+        b.Entity<Document>().Property(x => x.TaxTotal).HasPrecision(18, 4);
+        b.Entity<Document>().Property(x => x.GrossTotal).HasPrecision(18, 4);
+        b.Entity<Document>()
+            .HasOne(x => x.Customer).WithMany().HasForeignKey(x => x.CustomerId)
+            .OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Document>()
+            .HasOne(x => x.Company).WithMany().HasForeignKey(x => x.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
+        b.Entity<Document>()
+            .HasOne(x => x.SourceDocument).WithMany().HasForeignKey(x => x.SourceDocumentId)
+            .OnDelete(DeleteBehavior.SetNull);
+        b.Entity<DocumentPosition>().Property(x => x.Quantity).HasPrecision(18, 4);
+        b.Entity<DocumentPosition>().Property(x => x.NetPrice).HasPrecision(18, 4);
+        b.Entity<DocumentPosition>().Property(x => x.DiscountPercent).HasPrecision(6, 3);
+        b.Entity<DocumentPosition>().Property(x => x.TaxRatePercent).HasPrecision(6, 3);
+        b.Entity<DocumentPosition>().Property(x => x.NetTotal).HasPrecision(18, 4);
+        b.Entity<DocumentPosition>().Property(x => x.TaxTotal).HasPrecision(18, 4);
+        b.Entity<DocumentPosition>().Property(x => x.GrossTotal).HasPrecision(18, 4);
+        b.Entity<DocumentPosition>()
+            .HasOne(x => x.Document).WithMany(d => d.Positions).HasForeignKey(x => x.DocumentId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<DocumentPosition>()
+            .HasOne(x => x.Article).WithMany().HasForeignKey(x => x.ArticleId)
+            .OnDelete(DeleteBehavior.SetNull);
+        b.Entity<DocumentPosition>().HasIndex(x => new { x.DocumentId, x.Position });
+
+        b.Entity<WikiPageDepartment>().HasKey(x => new { x.WikiPageId, x.DepartmentId });
+        b.Entity<WikiPageDepartment>()
+            .HasOne(x => x.WikiPage).WithMany(p => p.Departments).HasForeignKey(x => x.WikiPageId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<WikiPageDepartment>()
+            .HasOne(x => x.Department).WithMany().HasForeignKey(x => x.DepartmentId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<WikiPageTeam>().HasKey(x => new { x.WikiPageId, x.TeamId });
+        b.Entity<WikiPageTeam>()
+            .HasOne(x => x.WikiPage).WithMany(p => p.Teams).HasForeignKey(x => x.WikiPageId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<WikiPageTeam>()
+            .HasOne(x => x.Team).WithMany().HasForeignKey(x => x.TeamId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        b.Entity<WikiPageEditor>().HasKey(x => new { x.WikiPageId, x.UserId });
+        b.Entity<WikiPageEditor>()
+            .HasOne(x => x.WikiPage).WithMany(p => p.Editors).HasForeignKey(x => x.WikiPageId)
+            .OnDelete(DeleteBehavior.Cascade);
+        b.Entity<WikiPageEditor>().HasIndex(x => x.UserId);
     }
 }

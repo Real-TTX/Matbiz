@@ -59,11 +59,17 @@ public static class SampleDataSeeder
         Customer[] customers = Array.Empty<Customer>();
         if (!hasCustomers)
         {
-        // --- Custom fields ----------------------------------------------------
-        var kundennr = new CustomerFieldDefinition { Key = "kundennummer", Label = "Kundennummer", Type = CustomFieldType.Text, SortOrder = 1 };
-        var vip = new CustomerFieldDefinition { Key = "vip", Label = "VIP-Kunde", Type = CustomFieldType.Boolean, SortOrder = 2 };
-        var seitJahr = new CustomerFieldDefinition { Key = "kunde_seit", Label = "Kunde seit", Type = CustomFieldType.Date, SortOrder = 3 };
-        db.CustomerFieldDefinitions.AddRange(kundennr, vip, seitJahr);
+        // --- Custom fields (Contact-Entity) -----------------------------------
+        var kundennr = new Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition
+            { EntityType = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact,
+              Key = "kundennummer", Label = "Kundennummer", Type = Matbiz.Web.Modules.CustomFields.Models.CustomFieldType.Text, SortOrder = 1 };
+        var vip = new Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition
+            { EntityType = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact,
+              Key = "vip", Label = "VIP-Kunde", Type = Matbiz.Web.Modules.CustomFields.Models.CustomFieldType.Boolean, SortOrder = 2 };
+        var seitJahr = new Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition
+            { EntityType = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact,
+              Key = "kunde_seit", Label = "Kunde seit", Type = Matbiz.Web.Modules.CustomFields.Models.CustomFieldType.Date, SortOrder = 3 };
+        db.CustomFieldDefinitions.AddRange(kundennr, vip, seitJahr);
 
         // --- Customers --------------------------------------------------------
         customers = new[]
@@ -78,13 +84,18 @@ public static class SampleDataSeeder
         db.Customers.AddRange(customers);
 
         // Custom field values
+        var contactEt = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact;
         for (var i = 0; i < customers.Length; i++)
         {
             var c = customers[i];
-            db.CustomerFieldValues.Add(new CustomerFieldValue { CustomerId = c.Id, FieldDefinitionId = kundennr.Id, Value = $"K-{1000 + i}" });
+            db.CustomFieldValues.Add(new Matbiz.Web.Modules.CustomFields.Models.CustomFieldValue
+                { EntityType = contactEt, EntityId = c.Id, FieldDefinitionId = kundennr.Id, Value = $"K-{1000 + i}" });
             if (i is 0 or 2)
-                db.CustomerFieldValues.Add(new CustomerFieldValue { CustomerId = c.Id, FieldDefinitionId = vip.Id, Value = "true" });
-            db.CustomerFieldValues.Add(new CustomerFieldValue { CustomerId = c.Id, FieldDefinitionId = seitJahr.Id, Value = new DateOnly(2019 + (i % 5), 1 + (i % 9), 1 + (i % 27)).ToString("yyyy-MM-dd") });
+                db.CustomFieldValues.Add(new Matbiz.Web.Modules.CustomFields.Models.CustomFieldValue
+                    { EntityType = contactEt, EntityId = c.Id, FieldDefinitionId = vip.Id, Value = "true" });
+            db.CustomFieldValues.Add(new Matbiz.Web.Modules.CustomFields.Models.CustomFieldValue
+                { EntityType = contactEt, EntityId = c.Id, FieldDefinitionId = seitJahr.Id,
+                  Value = new DateOnly(2019 + (i % 5), 1 + (i % 9), 1 + (i % 27)).ToString("yyyy-MM-dd") });
         }
 
         // History samples

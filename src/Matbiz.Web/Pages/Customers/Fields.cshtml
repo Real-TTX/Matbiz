@@ -1,68 +1,126 @@
 @page
 @model Matbiz.Web.Pages.Customers.FieldsModel
-@{ ViewData["Title"] = "Kundenfelder"; }
+@using Matbiz.Web.Modules.CustomFields.Models
+@{ ViewData["Title"] = "Kontaktfelder"; Layout = "_AdminLayout"; }
 
-<h1>Kontaktfelder</h1>
-<p class="text-muted">Zusätzlich zu den Standardfeldern kannst du hier eigene Felder definieren.</p>
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Kontaktfelder</h1>
+    @if (Model.Tab == "sektionen")
+    {
+        <a class="btn btn-primary" href="/Customers/Fields/EditSection"><i class="bi bi-plus-lg"></i> Neue Sektion</a>
+    }
+    else
+    {
+        <a class="btn btn-primary" href="/Customers/Fields/EditField"><i class="bi bi-plus-lg"></i> Neues Feld</a>
+    }
+</div>
 
-<form method="post" asp-page-handler="Add" class="row g-3 mb-4">
-    <div class="col-md-3">
-        <label class="form-label">Schlüssel</label>
-        <input class="form-control" asp-for="Draft.Key" />
+<p class="text-muted">Eigene Felder erscheinen auf der Kontaktseite — jede Sektion wird ein eigener Tab.</p>
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="nav-link @(Model.Tab == "felder" ? "active" : "")" href="/Customers/Fields?Tab=felder">
+            <i class="bi bi-sliders"></i> Felder
+            <span class="badge bg-secondary-subtle text-secondary ms-1">@Model.Items.Count</span>
+        </a>
+    </li>
+    <li class="nav-item">
+        <a class="nav-link @(Model.Tab == "sektionen" ? "active" : "")" href="/Customers/Fields?Tab=sektionen">
+            <i class="bi bi-folder"></i> Sektionen
+            <span class="badge bg-secondary-subtle text-secondary ms-1">@Model.Sections.Count</span>
+        </a>
+    </li>
+</ul>
+
+@if (Model.Tab == "sektionen")
+{
+    <div class="list-toolbar">
+        <input class="form-control form-control-sm list-toolbar-search" data-filter-search="section-list-body" placeholder="Suche Name…" />
+        <div class="list-toolbar-spacer"></div>
+        <span class="text-muted small"><span data-filter-count="section-list-body">@Model.Sections.Count</span> Eintrag/Einträge</span>
     </div>
-    <div class="col-md-3">
-        <label class="form-label">Bezeichnung</label>
-        <input class="form-control" asp-for="Draft.Label" />
-    </div>
-    <div class="col-md-2">
-        <label class="form-label">Typ</label>
-        <select class="form-select" asp-for="Draft.Type">
-            @foreach (var t in Enum.GetValues<CustomFieldType>())
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Felder</th>
+                <th>Sortierung</th>
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody id="section-list-body" data-paginate data-page-size="25">
+            @if (Model.Sections.Count == 0)
             {
-                <option value="@t">@t</option>
+                <tr class="empty-row"><td colspan="4">Keine Daten</td></tr>
             }
-        </select>
-    </div>
-    <div class="col-md-2">
-        <label class="form-label">Sortierung</label>
-        <input type="number" class="form-control" asp-for="Draft.SortOrder" />
-    </div>
-    <div class="col-md-1 d-flex align-items-end">
-        <div class="form-check">
-            <input class="form-check-input" asp-for="Draft.Required" id="req" />
-            <label class="form-check-label" for="req">Pflicht</label>
-        </div>
-    </div>
-    <div class="col-md-1 d-flex align-items-end">
-        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-plus-lg"></i></button>
-    </div>
-</form>
-
-@if (Model.Items.Count == 0)
-{
-    <p class="text-muted">Noch keine eigenen Felder.</p>
-}
-else
-{
-    <table class="table">
-        <thead><tr><th>Schlüssel</th><th>Bezeichnung</th><th>Typ</th><th>Pflicht</th><th>Sortierung</th><th></th></tr></thead>
-        <tbody>
-            @foreach (var f in Model.Items)
+            else
             {
-                <tr>
-                    <td><code>@f.Key</code></td>
-                    <td>@f.Label</td>
-                    <td>@f.Type</td>
-                    <td>@(f.Required ? "ja" : "")</td>
-                    <td>@f.SortOrder</td>
-                    <td>
-                        <form method="post" asp-page-handler="Delete" asp-route-id="@f.Id" class="d-inline"
-                              onsubmit="return confirm('Feld &quot;@f.Label&quot; wirklich löschen?');">
-                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
-                        </form>
-                    </td>
-                </tr>
+                @foreach (var s in Model.Sections)
+                {
+                    <tr data-filter-text="@s.Name">
+                        <td><i class="bi bi-folder text-muted me-2"></i><strong>@s.Name</strong></td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">@s.Fields.Count</span></td>
+                        <td>@s.SortOrder</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" href="/Customers/Fields/EditSection/@s.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                            <form method="post" asp-page-handler="DeleteSection" asp-route-id="@s.Id" class="d-inline"
+                                  onsubmit="return confirm('Sektion „@s.Name\" löschen? Enthaltene Felder rutschen in den Default-Tab.');">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
             }
         </tbody>
     </table>
+    <div data-pagination="section-list-body"></div>
+}
+else
+{
+    <div class="list-toolbar">
+        <input class="form-control form-control-sm list-toolbar-search" data-filter-search="field-list-body" placeholder="Suche Schlüssel oder Bezeichnung…" />
+        <div class="list-toolbar-spacer"></div>
+        <span class="text-muted small"><span data-filter-count="field-list-body">@Model.Items.Count</span> Eintrag/Einträge</span>
+    </div>
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th>Schlüssel</th>
+                <th>Bezeichnung</th>
+                <th>Typ</th>
+                <th>Sektion (Tab)</th>
+                <th>Pflicht</th>
+                <th>Sortierung</th>
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody id="field-list-body" data-paginate data-page-size="25">
+            @if (Model.Items.Count == 0)
+            {
+                <tr class="empty-row"><td colspan="7">Keine Daten</td></tr>
+            }
+            else
+            {
+                @foreach (var f in Model.Items)
+                {
+                    <tr data-filter-text="@f.Key @f.Label @(f.Section?.Name)">
+                        <td><code>@f.Key</code></td>
+                        <td><a class="text-decoration-none text-reset" href="/Customers/Fields/EditField/@f.Id"><strong>@f.Label</strong></a></td>
+                        <td><span class="badge bg-secondary-subtle text-secondary">@f.Type</span></td>
+                        <td class="text-muted">@(f.Section?.Name ?? "— Eigene Felder —")</td>
+                        <td>@(f.Required ? "ja" : "")</td>
+                        <td>@f.SortOrder</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-outline-secondary" href="/Customers/Fields/EditField/@f.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                            <form method="post" asp-page-handler="DeleteField" asp-route-id="@f.Id" class="d-inline"
+                                  onsubmit="return confirm('Feld „@f.Label\" wirklich löschen?');">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            }
+        </tbody>
+    </table>
+    <div data-pagination="field-list-body"></div>
 }

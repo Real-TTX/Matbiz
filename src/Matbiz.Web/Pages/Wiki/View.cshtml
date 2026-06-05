@@ -1,0 +1,37 @@
+@page "/Wiki/{Slug}"
+@model Matbiz.Web.Pages.Wiki.ViewModel
+@inject Matbiz.Web.Modules.Wiki.Services.MarkdownRenderer Markdown
+@using Matbiz.Web.Modules.Wiki.Models
+@{
+    ViewData["Title"] = Model.Page?.Title ?? "Seite";
+    var p = Model.Page!;
+}
+
+<div class="d-flex align-items-start mb-3">
+    <div class="flex-grow-1">
+        <h1 class="mb-1">@p.Title</h1>
+        <div class="text-muted small d-flex flex-wrap gap-2">
+            <span>
+                <i class="bi @Matbiz.Web.Pages.Wiki.IndexModel.VisibilityIcon(p.Visibility)"></i>
+                @Matbiz.Web.Pages.Wiki.IndexModel.VisibilityLabel(p.Visibility)
+            </span>
+            @if (p.Visibility == WikiVisibility.Departments && p.Departments.Count > 0)
+            {
+                <span>· @string.Join(", ", p.Departments.Select(d => d.Department.Name))</span>
+            }
+            else if (p.Visibility == WikiVisibility.Teams && p.Teams.Count > 0)
+            {
+                <span>· @string.Join(", ", p.Teams.Select(t => t.Team.Name))</span>
+            }
+            <span>· Aktualisiert @p.UpdatedAt.ToLocalTime().ToString("dd.MM.yyyy HH:mm")@(Model.UpdatedByName is null ? "" : $" von {Model.UpdatedByName}")</span>
+        </div>
+    </div>
+    @if (Model.CanEdit)
+    {
+        <a class="btn btn-outline-secondary" href="/Wiki/Edit/@p.Slug"><i class="bi bi-pencil"></i> Bearbeiten</a>
+    }
+</div>
+
+<article class="wiki-content">
+    @Markdown.Render(p.ContentMarkdown)
+</article>

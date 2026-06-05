@@ -1,0 +1,103 @@
+@page
+@model Matbiz.Web.Pages.Articles.IndexModel
+@using Matbiz.Web.Modules.Articles.Models
+@{ ViewData["Title"] = "Artikel"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Artikel</h1>
+    <a class="btn btn-primary" href="/Articles/Edit"><i class="bi bi-plus-lg"></i> Neuer Artikel</a>
+</div>
+
+<div class="list-toolbar">
+    <input class="form-control form-control-sm list-toolbar-search" data-filter-search="article-list-body" placeholder="Suche Nummer, Name, Kategorie…" />
+    <select class="form-select form-select-sm" data-filter-attr="type" data-filter-target="article-list-body">
+        <option value="">Alle Typen</option>
+        <option value="Product">Produkt</option>
+        <option value="Service">Dienstleistung</option>
+    </select>
+    <select class="form-select form-select-sm" data-filter-attr="status" data-filter-target="article-list-body">
+        <option value="">Alle Status</option>
+        <option value="active">Nur aktive</option>
+        <option value="inactive">Nur inaktive</option>
+    </select>
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="article-list-body">@Model.Items.Count</span> Eintrag/Einträge</span>
+</div>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th style="width: 50px;"></th>
+            <th style="width: 110px;">Nummer</th>
+            <th>Bezeichnung</th>
+            <th style="width: 110px;">Typ</th>
+            <th style="width: 70px;">Einheit</th>
+            <th style="width: 110px;" class="text-end">Netto</th>
+            <th style="width: 90px;" class="text-end">MwSt.</th>
+            <th style="width: 80px;">Status</th>
+            <th style="width: 80px;" class="text-end">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody id="article-list-body" data-paginate data-page-size="25">
+        @if (Model.Items.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="9">Keine Daten</td></tr>
+        }
+        else
+        {
+            @foreach (var a in Model.Items)
+            {
+                <tr data-filter-text="@a.Number @a.Name @a.Category"
+                    data-filter-type="@a.Type"
+                    data-filter-status="@(a.IsActive ? "active" : "inactive")"
+                    class="@(a.IsActive ? "" : "text-muted")">
+                    <td>
+                        @if (a.ImageBytes is { Length: > 0 })
+                        {
+                            <img src="/articles/@a.Id/image?v=@a.ImageVersion" class="article-thumb" alt="" />
+                        }
+                        else
+                        {
+                            <span class="article-thumb-placeholder"><i class="bi bi-image"></i></span>
+                        }
+                    </td>
+                    <td><code>@a.Number</code></td>
+                    <td>
+                        <a class="text-decoration-none text-reset" href="/Articles/Edit/@a.Id"><strong>@a.Name</strong></a>
+                        @if (!string.IsNullOrEmpty(a.Category))
+                        {
+                            <div class="small text-muted">@a.Category</div>
+                        }
+                    </td>
+                    <td>
+                        @if (a.Type == ArticleType.Service)
+                        {
+                            <span class="badge bg-info-subtle text-info"><i class="bi bi-clock"></i> Leistung</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-box"></i> Produkt</span>
+                        }
+                    </td>
+                    <td>@a.Unit</td>
+                    <td class="text-end">@a.NetPrice.ToString("N2") €</td>
+                    <td class="text-end small text-muted">@(a.TaxRate?.Percent.ToString("0.#") ?? "—") %</td>
+                    <td>
+                        @if (!a.IsActive)
+                        {
+                            <span class="badge bg-secondary-subtle text-secondary">Inaktiv</span>
+                        }
+                    </td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" href="/Articles/Edit/@a.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                        <form method="post" asp-page-handler="Delete" asp-route-id="@a.Id" class="d-inline"
+                              onsubmit="return confirm('Artikel „@a.Name\" wirklich löschen?');">
+                            <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<div data-pagination="article-list-body"></div>

@@ -1,0 +1,60 @@
+@page
+@model Matbiz.Web.Pages.Admin.Modules.IndexModel
+@{ ViewData["Title"] = "Module"; }
+
+<h1>Module</h1>
+<p class="text-muted">Aktivierte Module erscheinen in Navigation, Routing und Dashboard. <strong>Basis-Module</strong> sind grau hinterlegt — die kannst du nicht deaktivieren, ohne dass die App kaputt geht.</p>
+
+<table class="table align-middle">
+    <thead>
+        <tr>
+            <th style="width: 50px;"></th>
+            <th>Modul</th>
+            <th>Beschreibung</th>
+            <th style="width: 120px;">Typ</th>
+            <th style="width: 130px;" class="text-end">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var (def, enabled) in Model.Items)
+        {
+            <tr class="@(def.IsCore ? "module-row-core" : "")">
+                <td><i class="bi @def.Icon fs-5 text-muted"></i></td>
+                <td><strong>@def.Name</strong> <code class="ms-1 small text-muted">@def.Key</code></td>
+                <td class="text-muted">@def.Description</td>
+                <td>
+                    @if (def.IsCore)
+                    {
+                        <span class="badge bg-secondary-subtle text-secondary"><i class="bi bi-lock"></i> Basis</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-info-subtle text-info">Optional</span>
+                    }
+                </td>
+                <td class="text-end">
+                    @if (def.IsCore)
+                    {
+                        <div class="form-check form-switch d-inline-block opacity-50">
+                            <input class="form-check-input" type="checkbox" checked disabled />
+                            <label class="form-check-label small">Immer aktiv</label>
+                        </div>
+                    }
+                    else
+                    {
+                        <form method="post" asp-page-handler="Toggle" asp-route-key="@def.Key" class="d-inline">
+                            <div class="form-check form-switch d-inline-block">
+                                <input class="form-check-input" type="checkbox" id="m-@def.Key"
+                                       @(enabled ? "checked" : "")
+                                       onchange="this.form.submit()" />
+                                <label class="form-check-label small" for="m-@def.Key">
+                                    @(enabled ? "Aktiv" : "Inaktiv")
+                                </label>
+                            </div>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

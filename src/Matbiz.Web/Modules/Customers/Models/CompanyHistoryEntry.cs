@@ -24,4 +24,7 @@ public class CompanyHistoryEntry
     public string Action { get; set; } = string.Empty;
 
     public string? Details { get; set; }
+
+    public DateTime? EditedAt { get; set; }
+    public string? EditedByUserId { get; set; }
 }

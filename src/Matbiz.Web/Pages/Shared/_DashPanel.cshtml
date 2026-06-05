@@ -27,7 +27,7 @@
                                    @(t.Status == TaskStatus.Done ? "checked" : "") />
                             <span class="check-mark"><i class="bi bi-check-lg"></i></span>
                         </form>
-                        <a class="dash-row-body" href="/Tasks/@t.Id">
+                        <a class="dash-row-body" href="/Tasks/Edit/@t.Id">
                             <div>@t.Title</div>
                             <div class="small text-muted d-flex flex-wrap gap-2 mt-1">
                                 @if (t.DueDate is DateTime due)

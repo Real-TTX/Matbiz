@@ -1,6 +1,7 @@
 @page
 @model Matbiz.Web.Pages.IndexModel
 @using Matbiz.Web.Modules.Dashboard
+@using Matbiz.Web.Modules.Customers.Models
 @using TaskStatus = Matbiz.Web.Modules.Tasks.Models.TaskStatus
 @{
     ViewData["Title"] = "Dashboard";
@@ -16,48 +17,114 @@
         <summary class="btn btn-outline-secondary"><i class="bi bi-gear"></i> Anpassen</summary>
         <div class="dashboard-config-panel">
             <h6 class="mb-3"><i class="bi bi-grid me-2"></i>Dashboard anpassen</h6>
-            <form method="post" asp-page-handler="SaveConfig">
-                @for (var i = 0; i < widgets.Count; i++)
-                {
-                    var w = widgets[i];
-                    var meta = DashboardWidgetMeta.For(w.Type);
-                    <div class="widget-row">
-                        <input type="hidden" name="dto.Widgets[@i].Type" value="@((int)w.Type)" />
-                        <input type="hidden" name="dto.Widgets[@i].Order" value="@i" />
+            <form method="post" asp-page-handler="SaveConfig" id="dashboard-config-form">
+                <div class="dashboard-config-rows" id="dashboard-config-rows">
+                    @for (var i = 0; i < widgets.Count; i++)
+                    {
+                        var w = widgets[i];
+                        var meta = DashboardWidgetMeta.For(w.Type);
+                        var labelTitle = meta.Title;
+                        if (w.Type == DashboardWidget.CustomerGroup && w.GroupId is Guid gid)
+                        {
+                            var grp = Model.AllGroups.FirstOrDefault(g => g.Id == gid);
+                            labelTitle = w.CustomTitle ?? grp?.Name ?? "Gruppe (gelöscht)";
+                        }
+                        <div class="widget-row">
+                            <input type="hidden" name="dto.Widgets[@i].Id" value="@w.Id" />
+                            <input type="hidden" name="dto.Widgets[@i].Type" value="@((int)w.Type)" />
+                            <input type="hidden" class="widget-order" name="dto.Widgets[@i].Order" value="@i" />
+                            @if (w.GroupId is not null)
+                            {
+                                <input type="hidden" name="dto.Widgets[@i].GroupId" value="@w.GroupId" />
+                            }
 
-                        <div class="widget-row-grip">
-                            <button class="btn btn-sm btn-link p-0 d-block lh-1"
-                                    formaction="?handler=Move&type=@w.Type&delta=-1" formmethod="post"
-                                    @(i == 0 ? "disabled" : "") title="Nach oben">
-                                <i class="bi bi-chevron-up"></i>
-                            </button>
-                            <button class="btn btn-sm btn-link p-0 d-block lh-1"
-                                    formaction="?handler=Move&type=@w.Type&delta=1" formmethod="post"
-                                    @(i == widgets.Count - 1 ? "disabled" : "") title="Nach unten">
-                                <i class="bi bi-chevron-down"></i>
-                            </button>
+                            <span class="widget-drag-handle" title="Ziehen zum Sortieren">
+                                <i class="bi bi-grip-vertical"></i>
+                            </span>
+
+                            <div class="form-check flex-grow-1 mb-0">
+                                <input type="checkbox" class="form-check-input"
+                                       name="dto.Widgets[@i].Enabled" value="true"
+                                       id="w-en-@i" @(w.Enabled ? "checked" : "") />
+                                <label class="form-check-label" for="w-en-@i">
+                                    <i class="bi @meta.Icon"></i> @labelTitle
+                                </label>
+                            </div>
+
+                            <input type="number" class="form-control form-control-sm widget-count"
+                                   name="dto.Widgets[@i].MaxItems" value="@w.MaxItems"
+                                   min="1" max="50" title="Anzahl Einträge" />
+
+                            @if (w.Type == DashboardWidget.CustomerGroup)
+                            {
+                                <button type="submit" formaction="?handler=RemoveWidget&id=@w.Id"
+                                        class="btn btn-sm btn-link text-danger py-0"
+                                        onclick="return confirm('Widget entfernen?');" title="Entfernen">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            }
                         </div>
-
-                        <div class="form-check flex-grow-1 mb-0">
-                            <input type="checkbox" class="form-check-input"
-                                   name="dto.Widgets[@i].Enabled" value="true"
-                                   id="w-en-@i" @(w.Enabled ? "checked" : "") />
-                            <label class="form-check-label" for="w-en-@i">
-                                <i class="bi @meta.Icon"></i> @meta.Title
-                            </label>
-                        </div>
-
-                        <input type="number" class="form-control form-control-sm widget-count"
-                               name="dto.Widgets[@i].MaxItems" value="@w.MaxItems"
-                               min="1" max="50" title="Anzahl Einträge" />
-                    </div>
-                }
-                <div class="mt-3 d-flex justify-content-end">
+                    }
+                </div>
+                <div class="mt-3 d-flex justify-content-between gap-2">
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            onclick="document.getElementById('add-group-widget-dlg').showModal();">
+                        <i class="bi bi-plus-lg"></i> Gruppen-Widget
+                    </button>
                     <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-check2"></i> Speichern</button>
                 </div>
             </form>
+
+            @* === Add Group Widget Dialog === *@
+            <dialog id="add-group-widget-dlg" class="icon-picker-dialog">
+                <form method="post" asp-page-handler="AddGroupWidget">
+                    <div class="d-flex align-items-center mb-2">
+                        <h5 class="mb-0 me-auto"><i class="bi bi-collection me-2"></i>Gruppen-Widget hinzufügen</h5>
+                        <button type="button" class="btn-close" onclick="this.closest('dialog').close();"></button>
+                    </div>
+                    @if (Model.AllGroups.Count == 0)
+                    {
+                        <div class="alert alert-info py-2 mb-2">Noch keine Gruppen angelegt. Erst unter <a href="/Customers/Groups">Gruppen</a> eine erstellen.</div>
+                    }
+                    else
+                    {
+                        <label class="form-label small">Gruppe wählen:</label>
+                        <select name="groupId" class="form-select form-select-sm">
+                            @foreach (var g in Model.AllGroups.OrderBy(g => g.Name))
+                            {
+                                var kindLabel = g.EntityKind == CustomerGroupEntityKind.Company ? "Firmen" : "Kontakte";
+                                var dynLabel = g.Kind == CustomerGroupKind.Dynamic ? "dynamisch" : "statisch";
+                                <option value="@g.Id">@g.Name (@kindLabel, @dynLabel)</option>
+                            }
+                        </select>
+                        <div class="d-flex gap-2 mt-3 justify-content-end">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="this.closest('dialog').close();">Abbrechen</button>
+                            <button type="submit" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Hinzufügen</button>
+                        </div>
+                    }
+                </form>
+            </dialog>
         </div>
     </details>
+    <script>
+        // Init sortable + keep Order hidden values in sync with DOM order on drop.
+        (function () {
+            var container = document.getElementById('dashboard-config-rows');
+            if (!container || !window.Sortable) return;
+            Sortable.create(container, {
+                handle: '.widget-drag-handle',
+                animation: 150,
+                ghostClass: 'widget-row-ghost',
+                chosenClass: 'widget-row-chosen',
+                onEnd: function () {
+                    container.querySelectorAll('.widget-row').forEach(function (row, idx) {
+                        var orderEl = row.querySelector('.widget-order');
+                        if (orderEl) orderEl.value = idx;
+                    });
+                }
+            });
+        })();
+    </script>
 </div>
 
 <div class="row g-3 mb-4">
@@ -125,6 +192,73 @@
                 break;
             case DashboardWidget.RecentHistory:
                 @await Html.PartialAsync("_DashRecentHistory", Model.RecentHistory);
+                break;
+            case DashboardWidget.CustomerGroup:
+                if (Model.GroupWidgetItems.TryGetValue(w.Id, out var data))
+                {
+                    var title = w.CustomTitle ?? data.Group.Name;
+                    <div class="col-md-6">
+                        <div class="panel">
+                            <div class="panel-header">
+                                <h5 class="mb-0">
+                                    <i class="bi @(data.Group.Kind == CustomerGroupKind.Dynamic ? "bi-funnel-fill text-info" : "bi-collection-fill text-muted") me-2"></i>
+                                    @title
+                                </h5>
+                                <a class="small text-muted text-decoration-none ms-auto" href="/Customers/Groups/Detail/@data.Group.Id">Öffnen →</a>
+                            </div>
+                            @if (data.Group.EntityKind == CustomerGroupEntityKind.Company)
+                            {
+                                @if (data.Companies.Count == 0)
+                                {
+                                    <div class="empty-state-sm">Keine Firmen in dieser Gruppe.</div>
+                                }
+                                else
+                                {
+                                    <ul class="dash-list">
+                                        @foreach (var c in data.Companies)
+                                        {
+                                            <li class="dash-row">
+                                                <a class="dash-row-body" href="/Companies/@c.Id">
+                                                    <strong>@c.Name</strong>
+                                                    <div class="small text-muted">
+                                                        @if (!string.IsNullOrEmpty(c.Email)) { <span><i class="bi bi-envelope"></i> @c.Email</span> }
+                                                        @if (!string.IsNullOrEmpty(c.Phone)) { <span class="ms-2"><i class="bi bi-telephone"></i> @c.Phone</span> }
+                                                        @if (!string.IsNullOrEmpty(c.City)) { <span class="ms-2"><i class="bi bi-geo-alt"></i> @c.City</span> }
+                                                    </div>
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            }
+                            else
+                            {
+                                @if (data.Contacts.Count == 0)
+                                {
+                                    <div class="empty-state-sm">Keine Kontakte in dieser Gruppe.</div>
+                                }
+                                else
+                                {
+                                    <ul class="dash-list">
+                                        @foreach (var c in data.Contacts)
+                                        {
+                                            <li class="dash-row">
+                                                <a class="dash-row-body" href="/Customers/@c.Id">
+                                                    <strong>@c.Name</strong>
+                                                    <div class="small text-muted">
+                                                        @if (!string.IsNullOrEmpty(c.EffectiveCompanyName)) { <span><i class="bi bi-building"></i> @c.EffectiveCompanyName</span> }
+                                                        @if (!string.IsNullOrEmpty(c.Email)) { <span class="ms-2"><i class="bi bi-envelope"></i> @c.Email</span> }
+                                                        @if (!string.IsNullOrEmpty(c.Phone)) { <span class="ms-2"><i class="bi bi-telephone"></i> @c.Phone</span> }
+                                                    </div>
+                                                </a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            }
+                        </div>
+                    </div>
+                }
                 break;
         }
     }

@@ -1,26 +1,29 @@
 @model Matbiz.Web.Pages.Companies.IndexModel
 
+@{
+    var compColCount = Model.Columns.All.Count(x => Model.Columns.Is(x.Key)) + 1;
+}
 <div id="company-table">
-    @if (Model.Items.Count == 0)
-    {
-        <p class="text-muted">Keine Firmen gefunden.</p>
-    }
-    else
-    {
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
-                    {
-                        <th>@col.Label</th>
-                    }
-                    <th class="text-end">Aktionen</th>
-                </tr>
-            </thead>
-            <tbody>
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                @foreach (var col in Model.Columns.All.Where(c => Model.Columns.Is(c.Key)))
+                {
+                    <th>@col.Label</th>
+                }
+                <th class="text-end">Aktionen</th>
+            </tr>
+        </thead>
+        <tbody id="company-list-body" data-paginate data-page-size="50">
+            @if (Model.Items.Count == 0)
+            {
+                <tr class="empty-row"><td colspan="@compColCount">Keine Daten</td></tr>
+            }
+            else
+            {
                 @foreach (var c in Model.Items)
                 {
-                    <tr>
+                    <tr data-filter-text="@c.Name @c.Email @c.Phone @c.City @c.Country">
                         @foreach (var col in Model.Columns.All.Where(x => Model.Columns.Is(x.Key)))
                         {
                             <td>
@@ -64,14 +67,15 @@
                                 }
                             </td>
                         }
-                        <td class="text-end">
-                            <a class="btn btn-outline-secondary btn-sm" title="Öffnen" href="/Companies/@c.Id"><i class="bi bi-folder2-open"></i></a>
-                        </td>
-                    </tr>
+                    <td class="text-end">
+                        <a class="btn btn-outline-secondary btn-sm" title="Öffnen" href="/Companies/@c.Id"><i class="bi bi-folder2-open"></i></a>
+                    </td>
+                </tr>
                 }
-            </tbody>
-        </table>
-    }
+            }
+        </tbody>
+    </table>
+    <div data-pagination="company-list-body"></div>
 </div>
 
 @functions {

@@ -133,11 +133,342 @@ namespace Matbiz.Web.Data.Migrations
                     b.ToTable("AuthSessionTickets");
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.Articles.Models.Article", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Category")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<byte[]>("ImageBytes")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("ImageContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("ImageVersion")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<decimal>("NetPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<decimal?>("PurchasePrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("TaxRateId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("TaxRateId");
+
+                    b.ToTable("Articles");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Articles.Models.NumberRange", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("CurrentValue")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("CurrentYear")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Digits")
+                        .HasColumnType("integer");
+
+                    b.Property<bool>("IncludeYear")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Prefix")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("Separator")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
+
+                    b.ToTable("NumberRanges");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Articles.Models.TaxRate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<decimal>("Percent")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("TaxRates");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("Options")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("Required")
+                        .HasColumnType("boolean");
+
+                    b.Property<Guid?>("SectionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("SectionId");
+
+                    b.HasIndex("EntityType", "Key")
+                        .IsUnique();
+
+                    b.ToTable("CustomFieldDefinitions");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomFields.Models.CustomFieldSection", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("EntityType", "Name")
+                        .IsUnique();
+
+                    b.ToTable("CustomFieldSections");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomFields.Models.CustomFieldValue", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("EntityId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("EntityType")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("FieldDefinitionId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("Value")
+                        .HasColumnType("text");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("FieldDefinitionId");
+
+                    b.HasIndex("EntityType", "EntityId", "FieldDefinitionId")
+                        .IsUnique();
+
+                    b.ToTable("CustomFieldValues");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItem", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Context")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IconClass")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Label")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("OpenMode")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Url")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("CustomMenuItems");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItemDepartment", b =>
+                {
+                    b.Property<Guid>("CustomMenuItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CustomMenuItemId", "DepartmentId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("CustomMenuItemDepartments");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItemTeam", b =>
+                {
+                    b.Property<Guid>("CustomMenuItemId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("CustomMenuItemId", "TeamId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("CustomMenuItemTeams");
+                });
+
             modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.Company", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid");
+
+                    b.Property<string>("BuyerReference")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
 
                     b.Property<string>("City")
                         .HasMaxLength(100)
@@ -149,6 +480,10 @@ namespace Matbiz.Web.Data.Migrations
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("DebitorAccount")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -174,6 +509,10 @@ namespace Matbiz.Web.Data.Migrations
                     b.Property<string>("Street")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
+
+                    b.Property<string>("VatId")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.HasKey("Id");
 
@@ -222,6 +561,12 @@ namespace Matbiz.Web.Data.Migrations
                         .HasColumnType("uuid");
 
                     b.Property<string>("Details")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EditedByUserId")
                         .HasColumnType("text");
 
                     b.Property<string>("OnBehalfOfAdminId")
@@ -273,6 +618,10 @@ namespace Matbiz.Web.Data.Migrations
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("DebitorAccount")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
                     b.Property<string>("Email")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
@@ -300,6 +649,10 @@ namespace Matbiz.Web.Data.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("VatId")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("CompanyId");
@@ -307,67 +660,6 @@ namespace Matbiz.Web.Data.Migrations
                     b.HasIndex("Name");
 
                     b.ToTable("Customers");
-                });
-
-            modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.CustomerFieldDefinition", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Key")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("character varying(100)");
-
-                    b.Property<string>("Label")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("character varying(200)");
-
-                    b.Property<bool>("Required")
-                        .HasColumnType("boolean");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("Type")
-                        .HasColumnType("integer");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("Key")
-                        .IsUnique();
-
-                    b.ToTable("CustomerFieldDefinitions");
-                });
-
-            modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.CustomerFieldValue", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("CustomerId")
-                        .HasColumnType("uuid");
-
-                    b.Property<Guid>("FieldDefinitionId")
-                        .HasColumnType("uuid");
-
-                    b.Property<string>("Value")
-                        .HasColumnType("text");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("FieldDefinitionId");
-
-                    b.HasIndex("CustomerId", "FieldDefinitionId")
-                        .IsUnique();
-
-                    b.ToTable("CustomerFieldValues");
                 });
 
             modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.CustomerGroup", b =>
@@ -450,6 +742,12 @@ namespace Matbiz.Web.Data.Migrations
                     b.Property<string>("Details")
                         .HasColumnType("text");
 
+                    b.Property<DateTime?>("EditedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("EditedByUserId")
+                        .HasColumnType("text");
+
                     b.Property<string>("OnBehalfOfAdminId")
                         .HasColumnType("text");
 
@@ -502,6 +800,191 @@ namespace Matbiz.Web.Data.Migrations
                     b.ToTable("Tags");
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.Documents.Models.Document", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BuyerOrderNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("BuyerReference")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("BuyerVatIdSnapshot")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
+                    b.Property<Guid?>("CompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContractNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("CurrencyCode")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)");
+
+                    b.Property<string>("CustomerAddressSnapshot")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("CustomerEmailSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<Guid?>("CustomerId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("CustomerNameSnapshot")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("DocumentDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<DateTime?>("DueDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("FooterText")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("GrossTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("HeaderText")
+                        .HasColumnType("text");
+
+                    b.Property<decimal>("NetTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("PaymentTerms")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("ServiceDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SourceDocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("TaxTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CompanyId");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("SourceDocumentId");
+
+                    b.HasIndex("Type", "Number")
+                        .IsUnique();
+
+                    b.ToTable("Documents");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Documents.Models.DocumentPosition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid?>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ArticleNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("GrossTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("NetPrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("NetTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("TaxRatePercent")
+                        .HasPrecision(6, 3)
+                        .HasColumnType("numeric(6,3)");
+
+                    b.Property<decimal>("TaxTotal")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("VatCategoryCode")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("DocumentId", "Position");
+
+                    b.ToTable("DocumentPositions");
+                });
+
             modelBuilder.Entity("Matbiz.Web.Modules.Files.Models.AttachedFile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -544,6 +1027,50 @@ namespace Matbiz.Web.Data.Migrations
                     b.ToTable("AttachedFiles");
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.Modules.Models.ModuleSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("text");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("ModuleSettings");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Modules.Models.NavMenuLayout", b =>
+                {
+                    b.Property<string>("EntryKey")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("IsHidden")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("LabelOverride")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("SectionOverride")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int?>("SortOrderOverride")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("EntryKey");
+
+                    b.ToTable("NavMenuLayouts");
+                });
+
             modelBuilder.Entity("Matbiz.Web.Modules.SystemSettings.Models.BrandingSettings", b =>
                 {
                     b.Property<Guid>("Id")
@@ -565,6 +1092,59 @@ namespace Matbiz.Web.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<string>("BankName")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("Bic")
+                        .HasMaxLength(11)
+                        .HasColumnType("character varying(11)");
+
+                    b.Property<string>("ChartOfAccounts")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)");
+
+                    b.Property<string>("CompanyCity")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CompanyCountry")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("CompanyEmail")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CompanyLegalName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CompanyPhone")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("CompanyPostalCode")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("CompanyStreet")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<string>("CompanyWebsite")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("DefaultPaymentTerms")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Iban")
+                        .HasMaxLength(34)
+                        .HasColumnType("character varying(34)");
+
                     b.Property<byte[]>("LogoBytes")
                         .HasColumnType("bytea");
 
@@ -572,13 +1152,62 @@ namespace Matbiz.Web.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
 
+                    b.Property<byte[]>("LogoDarkBytes")
+                        .HasColumnType("bytea");
+
+                    b.Property<string>("LogoDarkContentType")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<int>("LogoHeightPx")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("LogoInvertMode")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<string>("ManagingDirector")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int>("NextDebitorNumber")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("PdfFooterText")
+                        .HasColumnType("text");
+
+                    b.Property<string>("PdfTemplate")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<string>("PrimaryColor")
                         .IsRequired()
                         .HasMaxLength(9)
                         .HasColumnType("character varying(9)");
 
+                    b.Property<string>("RegistrationCourt")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<string>("RegistrationNumber")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<bool>("ShowAppNameUnderLogo")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("TaxNumber")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
+
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VatId")
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)");
 
                     b.Property<int>("Version")
                         .HasColumnType("integer");
@@ -793,6 +1422,299 @@ namespace Matbiz.Web.Data.Migrations
                     b.ToTable("ImpersonationSessions");
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.GoodsReceipt", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Note")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Number")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<DateTime>("ReceiptDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid?>("SupplierCompanyId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("SupplierReferenceNumber")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Number")
+                        .IsUnique();
+
+                    b.HasIndex("SupplierCompanyId");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.ToTable("GoodsReceipts");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.GoodsReceiptPosition", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ArticleNumberSnapshot")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<string>("DescriptionSnapshot")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<int>("Position")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal?>("PurchasePrice")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<Guid>("ReceiptId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ArticleId");
+
+                    b.HasIndex("ReceiptId", "Position");
+
+                    b.ToTable("GoodsReceiptPositions");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.StockLevel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<decimal?>("ReorderLevel")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("ArticleId", "WarehouseId")
+                        .IsUnique();
+
+                    b.ToTable("StockLevels");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.StockMovement", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("ArticleId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("At")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(450)
+                        .HasColumnType("character varying(450)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 4)
+                        .HasColumnType("numeric(18,4)");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer");
+
+                    b.Property<Guid>("WarehouseId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("WarehouseId");
+
+                    b.HasIndex("ArticleId", "WarehouseId", "At");
+
+                    b.ToTable("StockMovements");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.Warehouse", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Name");
+
+                    b.ToTable("Warehouses");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPage", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ContentMarkdown")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasColumnType("text");
+
+                    b.Property<int>("Visibility")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("WikiPages");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPageDepartment", b =>
+                {
+                    b.Property<Guid>("WikiPageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("DepartmentId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("WikiPageId", "DepartmentId");
+
+                    b.HasIndex("DepartmentId");
+
+                    b.ToTable("WikiPageDepartments");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPageEditor", b =>
+                {
+                    b.Property<Guid>("WikiPageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
+                    b.HasKey("WikiPageId", "UserId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("WikiPageEditors");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPageTeam", b =>
+                {
+                    b.Property<Guid>("WikiPageId")
+                        .HasColumnType("uuid");
+
+                    b.Property<Guid>("TeamId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("WikiPageId", "TeamId");
+
+                    b.HasIndex("TeamId");
+
+                    b.ToTable("WikiPageTeams");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -946,6 +1868,76 @@ namespace Matbiz.Web.Data.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.Articles.Models.Article", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Articles.Models.TaxRate", "TaxRate")
+                        .WithMany()
+                        .HasForeignKey("TaxRateId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("TaxRate");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.CustomFields.Models.CustomFieldSection", "Section")
+                        .WithMany("Fields")
+                        .HasForeignKey("SectionId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Section");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomFields.Models.CustomFieldValue", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.CustomFields.Models.CustomFieldDefinition", "FieldDefinition")
+                        .WithMany()
+                        .HasForeignKey("FieldDefinitionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("FieldDefinition");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItemDepartment", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItem", "CustomMenuItem")
+                        .WithMany("Departments")
+                        .HasForeignKey("CustomMenuItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Matbiz.Web.Modules.Teams.Models.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CustomMenuItem");
+
+                    b.Navigation("Department");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItemTeam", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItem", "CustomMenuItem")
+                        .WithMany("Teams")
+                        .HasForeignKey("CustomMenuItemId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Matbiz.Web.Modules.Teams.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("CustomMenuItem");
+
+                    b.Navigation("Team");
+                });
+
             modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.CompanyGroupMember", b =>
                 {
                     b.HasOne("Matbiz.Web.Modules.Customers.Models.Company", "Company")
@@ -1005,25 +1997,6 @@ namespace Matbiz.Web.Data.Migrations
                     b.Navigation("Company");
                 });
 
-            modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.CustomerFieldValue", b =>
-                {
-                    b.HasOne("Matbiz.Web.Modules.Customers.Models.Customer", "Customer")
-                        .WithMany("CustomFieldValues")
-                        .HasForeignKey("CustomerId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("Matbiz.Web.Modules.Customers.Models.CustomerFieldDefinition", "FieldDefinition")
-                        .WithMany()
-                        .HasForeignKey("FieldDefinitionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Customer");
-
-                    b.Navigation("FieldDefinition");
-                });
-
             modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.CustomerGroupMember", b =>
                 {
                     b.HasOne("Matbiz.Web.Modules.Customers.Models.Customer", "Customer")
@@ -1073,6 +2046,48 @@ namespace Matbiz.Web.Data.Migrations
                     b.Navigation("Tag");
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.Documents.Models.Document", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Customers.Models.Company", "Company")
+                        .WithMany()
+                        .HasForeignKey("CompanyId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Matbiz.Web.Modules.Customers.Models.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("Matbiz.Web.Modules.Documents.Models.Document", "SourceDocument")
+                        .WithMany()
+                        .HasForeignKey("SourceDocumentId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("Company");
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("SourceDocument");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Documents.Models.DocumentPosition", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Articles.Models.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Matbiz.Web.Modules.Documents.Models.Document", "Document")
+                        .WithMany("Positions")
+                        .HasForeignKey("DocumentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Document");
+                });
+
             modelBuilder.Entity("Matbiz.Web.Modules.Tasks.Models.TaskHistoryEntry", b =>
                 {
                     b.HasOne("Matbiz.Web.Modules.Tasks.Models.TaskItem", "Task")
@@ -1103,6 +2118,130 @@ namespace Matbiz.Web.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("Team");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.GoodsReceipt", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Customers.Models.Company", "SupplierCompany")
+                        .WithMany()
+                        .HasForeignKey("SupplierCompanyId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.HasOne("Matbiz.Web.Modules.Warehouse.Models.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("SupplierCompany");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.GoodsReceiptPosition", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Articles.Models.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Matbiz.Web.Modules.Warehouse.Models.GoodsReceipt", "Receipt")
+                        .WithMany("Positions")
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Receipt");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.StockLevel", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Articles.Models.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Matbiz.Web.Modules.Warehouse.Models.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.StockMovement", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Articles.Models.Article", "Article")
+                        .WithMany()
+                        .HasForeignKey("ArticleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("Matbiz.Web.Modules.Warehouse.Models.Warehouse", "Warehouse")
+                        .WithMany()
+                        .HasForeignKey("WarehouseId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Article");
+
+                    b.Navigation("Warehouse");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPageDepartment", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Teams.Models.Department", "Department")
+                        .WithMany()
+                        .HasForeignKey("DepartmentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Matbiz.Web.Modules.Wiki.Models.WikiPage", "WikiPage")
+                        .WithMany("Departments")
+                        .HasForeignKey("WikiPageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Department");
+
+                    b.Navigation("WikiPage");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPageEditor", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Wiki.Models.WikiPage", "WikiPage")
+                        .WithMany("Editors")
+                        .HasForeignKey("WikiPageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("WikiPage");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPageTeam", b =>
+                {
+                    b.HasOne("Matbiz.Web.Modules.Teams.Models.Team", "Team")
+                        .WithMany()
+                        .HasForeignKey("TeamId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("Matbiz.Web.Modules.Wiki.Models.WikiPage", "WikiPage")
+                        .WithMany("Teams")
+                        .HasForeignKey("WikiPageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Team");
+
+                    b.Navigation("WikiPage");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -1207,6 +2346,18 @@ namespace Matbiz.Web.Data.Migrations
                         .IsRequired();
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomFields.Models.CustomFieldSection", b =>
+                {
+                    b.Navigation("Fields");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.CustomMenu.Models.CustomMenuItem", b =>
+                {
+                    b.Navigation("Departments");
+
+                    b.Navigation("Teams");
+                });
+
             modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.Company", b =>
                 {
                     b.Navigation("Contacts");
@@ -1218,8 +2369,6 @@ namespace Matbiz.Web.Data.Migrations
 
             modelBuilder.Entity("Matbiz.Web.Modules.Customers.Models.Customer", b =>
                 {
-                    b.Navigation("CustomFieldValues");
-
                     b.Navigation("History");
 
                     b.Navigation("Tags");
@@ -1239,6 +2388,11 @@ namespace Matbiz.Web.Data.Migrations
                     b.Navigation("Customers");
                 });
 
+            modelBuilder.Entity("Matbiz.Web.Modules.Documents.Models.Document", b =>
+                {
+                    b.Navigation("Positions");
+                });
+
             modelBuilder.Entity("Matbiz.Web.Modules.Tasks.Models.TaskItem", b =>
                 {
                     b.Navigation("History");
@@ -1252,6 +2406,20 @@ namespace Matbiz.Web.Data.Migrations
             modelBuilder.Entity("Matbiz.Web.Modules.Teams.Models.Team", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Warehouse.Models.GoodsReceipt", b =>
+                {
+                    b.Navigation("Positions");
+                });
+
+            modelBuilder.Entity("Matbiz.Web.Modules.Wiki.Models.WikiPage", b =>
+                {
+                    b.Navigation("Departments");
+
+                    b.Navigation("Editors");
+
+                    b.Navigation("Teams");
                 });
 #pragma warning restore 612, 618
         }

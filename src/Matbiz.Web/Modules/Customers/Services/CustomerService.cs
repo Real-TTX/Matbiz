@@ -30,7 +30,6 @@ public class CustomerService(ApplicationDbContext db, ICurrentUserAccessor curre
 
     public Task<Customer?> GetAsync(Guid id, CancellationToken ct = default) =>
         db.Customers
-            .Include(x => x.CustomFieldValues).ThenInclude(v => v.FieldDefinition)
             .Include(x => x.History.OrderByDescending(h => h.At))
             .Include(x => x.Tags).ThenInclude(t => t.Tag)
             .Include(x => x.Company)
@@ -105,6 +104,26 @@ public class CustomerService(ApplicationDbContext db, ICurrentUserAccessor curre
         await db.SaveChangesAsync(ct);
     }
 
+    /// <summary>Details eines bestehenden Eintrags ändern. Wer/wann wird festgehalten.</summary>
+    public async Task UpdateHistoryAsync(Guid entryId, string newDetails, CancellationToken ct = default)
+    {
+        var h = await db.CustomerHistoryEntries.FindAsync([entryId], ct);
+        if (h is null) return;
+        h.Details = newDetails;
+        h.EditedAt = DateTime.UtcNow;
+        var ctx = await currentUser.GetAsync();
+        h.EditedByUserId = ctx.UserId;
+        await db.SaveChangesAsync(ct);
+    }
+
+    public async Task DeleteHistoryAsync(Guid entryId, CancellationToken ct = default)
+    {
+        var h = await db.CustomerHistoryEntries.FindAsync([entryId], ct);
+        if (h is null) return;
+        db.CustomerHistoryEntries.Remove(h);
+        await db.SaveChangesAsync(ct);
+    }
+
     private async Task WriteHistoryAsync(Guid customerId, string action, string details, CancellationToken ct)
     {
         var ctx = await currentUser.GetAsync();
@@ -119,23 +138,5 @@ public class CustomerService(ApplicationDbContext db, ICurrentUserAccessor curre
     }
 }
 
-public class CustomerFieldService(ApplicationDbContext db)
-{
-    public Task<List<CustomerFieldDefinition>> ListAsync(CancellationToken ct = default) =>
-        db.CustomerFieldDefinitions.AsNoTracking().OrderBy(x => x.SortOrder).ThenBy(x => x.Label).ToListAsync(ct);
-
-    public async Task<CustomerFieldDefinition> CreateAsync(CustomerFieldDefinition def, CancellationToken ct = default)
-    {
-        db.CustomerFieldDefinitions.Add(def);
-        await db.SaveChangesAsync(ct);
-        return def;
-    }
-
-    public async Task DeleteAsync(Guid id, CancellationToken ct = default)
-    {
-        var d = await db.CustomerFieldDefinitions.FindAsync([id], ct);
-        if (d is null) return;
-        db.CustomerFieldDefinitions.Remove(d);
-        await db.SaveChangesAsync(ct);
-    }
-}
+// CustomerFieldService entfernt — Custom-Fields werden nun über
+// Modules/CustomFields/Services/CustomFieldService verwaltet.

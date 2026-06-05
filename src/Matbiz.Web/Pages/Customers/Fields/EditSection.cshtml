@@ -1,0 +1,28 @@
+@page "/Customers/Fields/EditSection/{Id:guid?}"
+@model Matbiz.Web.Pages.Customers.Fields.EditSectionModel
+@{
+    ViewData["Title"] = Model.IsNew ? "Neue Sektion" : "Sektion bearbeiten";
+    Layout = "_AdminLayout";
+}
+
+<h1>@(Model.IsNew ? "Neue Sektion" : "Sektion bearbeiten")</h1>
+
+<form method="post" class="row g-3" style="max-width: 700px;">
+    <div asp-validation-summary="ModelOnly" class="text-danger small col-12"></div>
+
+    <div class="col-md-8">
+        <label class="form-label">Name *</label>
+        <input class="form-control" asp-for="Name" required />
+        <span asp-validation-for="Name" class="text-danger small"></span>
+        <div class="form-text">Wird als eigener Tab auf der Kontaktseite angezeigt.</div>
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Sortierung</label>
+        <input type="number" class="form-control" asp-for="SortOrder" />
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <a class="btn btn-secondary" href="/Customers/Fields?Tab=sektionen"><i class="bi bi-x-lg"></i> Abbrechen</a>
+    </div>
+</form>

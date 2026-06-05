@@ -1,0 +1,121 @@
+@page
+@model Matbiz.Web.Pages.Admin.NavLayout.IndexModel
+@{ ViewData["Title"] = "Menü-Layout"; }
+
+<h1>Menü-Layout</h1>
+<p class="text-muted">
+    <strong>Sortieren:</strong> Zeile mit dem Griff ziehen, oder ↑/↓-Pfeile rechts klicken.<br />
+    <strong>Beschriftung / Sektion:</strong> leer lassen = Modul-Default.
+    <strong>Reset</strong> (<i class="bi bi-arrow-counterclockwise"></i>) löscht alle Overrides eines Eintrags.
+</p>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+
+<form method="post" asp-page-handler="Save">
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th style="width: 40px;"></th>
+                <th style="width: 40px;"></th>
+                <th>Eintrag</th>
+                <th>Beschriftung (Override)</th>
+                <th>Sektion / Header</th>
+                <th style="width: 100px;" class="text-center">Sichtbar</th>
+                <th style="width: 90px;" class="text-end">Sort. / Reset</th>
+            </tr>
+        </thead>
+        <tbody id="layout-rows">
+            @foreach (var r in Model.Rows)
+            {
+                <tr class="@(r.Hidden ? "layout-row-hidden" : "")">
+                    <td>
+                        <span class="layout-handle" title="Ziehen zum Sortieren"><i class="bi bi-grip-vertical"></i></span>
+                    </td>
+                    <td><i class="bi @r.Icon"></i></td>
+                    <td>
+                        <strong>@r.DefaultLabel</strong>
+                        <div class="small text-muted">
+                            <code>@r.Key</code>
+                            <span class="ms-2">→ @r.Url</span>
+                            @if (!string.IsNullOrEmpty(r.DefaultSection))
+                            {
+                                <span class="ms-2">· Default-Sektion: <em>@r.DefaultSection</em></span>
+                            }
+                        </div>
+                        <input type="hidden" name="entryKey" value="@r.Key" />
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm" name="labelOverride"
+                               placeholder="@r.DefaultLabel" value="@r.LabelOverride" />
+                    </td>
+                    <td>
+                        <input class="form-control form-control-sm" name="sectionOverride"
+                               placeholder="@(r.DefaultSection ?? "(keine)")"
+                               value="@r.SectionOverride" list="section-suggestions" />
+                    </td>
+                    <td class="text-center">
+                        @* Backend kennt IsHidden — wir senden „Sichtbar" und drehen serverseitig um.
+                           Hidden-Input mit "false" sorgt dafür dass auch unchecked Boxen einen Wert liefern. *@
+                        <input type="hidden" name="visible" value="false" />
+                        <div class="form-check form-switch d-inline-block">
+                            <input class="form-check-input" type="checkbox" name="visible" value="true" @(r.Hidden ? "" : "checked") />
+                        </div>
+                    </td>
+                    <td class="text-end text-nowrap">
+                        <button type="button" class="btn btn-sm btn-link text-muted py-0" onclick="moveRow(this, -1)" title="Hoch">
+                            <i class="bi bi-arrow-up"></i>
+                        </button>
+                        <button type="button" class="btn btn-sm btn-link text-muted py-0" onclick="moveRow(this, +1)" title="Runter">
+                            <i class="bi bi-arrow-down"></i>
+                        </button>
+                        <button type="submit" formaction="?handler=Reset&key=@r.Key"
+                                class="btn btn-sm btn-link text-muted py-0"
+                                onclick="return confirm('Override für „@r.DefaultLabel\" zurücksetzen?');"
+                                title="Auf Default zurücksetzen">
+                            <i class="bi bi-arrow-counterclockwise"></i>
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    <datalist id="section-suggestions">
+        @foreach (var s in Model.Rows
+            .Select(r => r.SectionOverride ?? r.DefaultSection)
+            .Where(s => !string.IsNullOrEmpty(s))
+            .Distinct())
+        {
+            <option value="@s" />
+        }
+    </datalist>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Layout speichern</button>
+    </div>
+</form>
+
+<script>
+    function moveRow(btn, delta) {
+        var row = btn.closest('tr');
+        var sibling = delta < 0 ? row.previousElementSibling : row.nextElementSibling;
+        if (!sibling) return;
+        if (delta < 0) row.parentNode.insertBefore(row, sibling);
+        else row.parentNode.insertBefore(sibling, row);
+    }
+
+    (function () {
+        var body = document.getElementById('layout-rows');
+        if (body && typeof Sortable !== 'undefined') {
+            Sortable.create(body, {
+                handle: '.layout-handle',
+                animation: 150,
+                ghostClass: 'menu-item-ghost',
+                chosenClass: 'menu-item-chosen'
+            });
+        }
+    })();
+</script>

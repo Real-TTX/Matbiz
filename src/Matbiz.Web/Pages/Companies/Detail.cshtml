@@ -5,8 +5,6 @@
     var c = Model.Current!;
 }
 
-<a class="btn btn-link mb-2 ps-0" href="/Companies"><i class="bi bi-arrow-left"></i> Übersicht</a>
-
 @if (TempData["StatusMessage"] is string msg)
 {
     <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
@@ -20,7 +18,10 @@
             {
                 <div class="text-muted small">@c.Description</div>
             }
-            <h1 class="mb-1">@c.Name</h1>
+            <div class="d-flex align-items-start gap-2">
+                <h1 class="mb-1 me-auto">@c.Name</h1>
+                <partial name="_EntityActions" model="@(new Matbiz.Web.Shared.Actions.EntityActionContext(Matbiz.Web.Shared.Actions.EntityTypes.Company, c.Id, null))" />
+            </div>
             <div class="customer-meta">
                 @if (!string.IsNullOrEmpty(c.Email)) { <span><i class="bi bi-envelope"></i> <a href="mailto:@c.Email">@c.Email</a></span> }
                 @if (!string.IsNullOrEmpty(c.Phone)) { <span><i class="bi bi-telephone"></i> <a href="tel:@c.Phone">@c.Phone</a></span> }
@@ -45,11 +46,18 @@
                         </button>
                     </form>
                 }
-                <details class="tag-add-wrap">
-                    <summary class="tag-add-chip"><i class="bi bi-plus-lg"></i> Tag</summary>
-                    <form method="post" asp-page-handler="AddTag" class="tag-add-form ms-2">
-                        <input name="NewTag" list="company-tags-options" placeholder="Tag-Name…" autocomplete="off" autofocus />
-                        <button type="submit" class="btn btn-sm btn-primary py-0 px-2" style="font-size: 0.78rem;"><i class="bi bi-check2"></i></button>
+                <span class="tag-add">
+                    <button type="button" class="tag-add-chip" onclick="tagAdd.open(this)">
+                        <i class="bi bi-plus-lg"></i> Tag
+                    </button>
+                    <form method="post" asp-page-handler="AddTag" class="tag-add-form" style="display: none;">
+                        <input name="NewTag" list="company-tags-options" placeholder="Tag-Name…"
+                               autocomplete="off" onkeydown="tagAdd.handleKey(event)" />
+                        <button type="button" class="tag-add-x" onclick="tagAdd.close(this)" title="Abbrechen (ESC)">
+                            <i class="bi bi-x"></i>
+                        </button>
+                        <button type="submit" class="btn btn-sm btn-primary py-0 px-2"
+                                style="font-size: 0.78rem;"><i class="bi bi-check2"></i></button>
                         <datalist id="company-tags-options">
                             @foreach (var t in Model.AllTags.Where(t => !c.Tags.Any(ct => ct.TagId == t.Id)))
                             {
@@ -57,13 +65,22 @@
                             }
                         </datalist>
                     </form>
-                </details>
+                </span>
             </div>
         </div>
     </div>
 </div>
 
 <ul class="nav nav-tabs mt-4">
+    <li class="nav-item">
+        <a class="nav-link @(Model.ActiveTab == "historie" ? "active" : "")" href="/Companies/@c.Id?tab=historie">
+            <i class="bi bi-clock-history"></i> Historie
+            @if (c.History.Count > 0)
+            {
+                <span class="badge bg-secondary ms-1">@c.History.Count</span>
+            }
+        </a>
+    </li>
     <li class="nav-item">
         <a class="nav-link @(Model.ActiveTab == "stammdaten" ? "active" : "")" href="/Companies/@c.Id?tab=stammdaten">
             <i class="bi bi-card-list"></i> Stammdaten
@@ -79,15 +96,6 @@
         </a>
     </li>
     <li class="nav-item">
-        <a class="nav-link @(Model.ActiveTab == "historie" ? "active" : "")" href="/Companies/@c.Id?tab=historie">
-            <i class="bi bi-clock-history"></i> Historie
-            @if (c.History.Count > 0)
-            {
-                <span class="badge bg-secondary ms-1">@c.History.Count</span>
-            }
-        </a>
-    </li>
-    <li class="nav-item">
         <a class="nav-link @(Model.ActiveTab == "dateien" ? "active" : "")" href="/Companies/@c.Id?tab=dateien">
             <i class="bi bi-paperclip"></i> Dateien
             @if (Model.LibraryFiles.Count > 0)
@@ -96,6 +104,16 @@
             }
         </a>
     </li>
+    @foreach (var tool in Model.ToolItems)
+    {
+        var tkey = $"tool-{tool.Id}";
+        var ticon = string.IsNullOrEmpty(tool.IconClass) ? "bi-window-stack" : tool.IconClass;
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == tkey ? "active" : "")" href="/Companies/@c.Id?tab=@tkey">
+                <i class="bi @ticon"></i> @tool.Label
+            </a>
+        </li>
+    }
 </ul>
 
 <div class="tab-panel">
@@ -131,21 +149,22 @@
         }
         else
         {
-            <table class="table table-hover align-middle history-table" style="max-width: 1000px;">
+            <table class="table table-hover align-middle history-table" style="max-width: 1100px;">
                 <thead>
                     <tr>
                         <th style="width: 160px;">Datum / Zeit</th>
-                        <th style="width: 140px;">Aktion</th>
+                        <th style="width: 130px;">Aktion</th>
                         <th>Details</th>
-                        <th style="width: 200px;">Quelle</th>
-                        <th style="width: 180px;">Bearbeiter</th>
+                        <th style="width: 180px;">Quelle</th>
+                        <th style="width: 160px;">Bearbeiter</th>
+                        <th style="width: 80px;" class="text-end"></th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach (var h in Model.History)
                     {
                         var fromContact = h.SourceContactId is not null;
-                        <tr class="@(fromContact ? "history-from-contact" : "")">
+                        <tr class="@(fromContact ? "history-from-contact" : "")" data-history-id="@h.Id">
                             <td class="text-nowrap">
                                 <i class="bi bi-calendar3 text-muted me-1"></i>
                                 <strong>@h.At.ToLocalTime().ToString("dd.MM.yyyy")</strong>
@@ -156,10 +175,22 @@
                                 <span class="history-action @badgeCls"><i class="bi @iconCls"></i> @h.Action</span>
                             </td>
                             <td>
-                                <div>@h.Details</div>
+                                <div data-history-display>@h.Details</div>
+                                @if (!fromContact)
+                                {
+                                    <form method="post" asp-page-handler="EditHistory" data-history-edit class="d-none mt-1">
+                                        <input type="hidden" name="entryId" value="@h.Id" />
+                                        <input type="hidden" name="IncludeContacts" value="@Model.IncludeContacts" />
+                                        <textarea name="details" class="form-control form-control-sm" rows="3">@h.Details</textarea>
+                                        <div class="d-flex gap-1 mt-1">
+                                            <button class="btn btn-primary btn-sm"><i class="bi bi-check2"></i> Speichern</button>
+                                            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="toggleHistoryEdit(this, false)">Abbrechen</button>
+                                        </div>
+                                    </form>
+                                }
                                 @if (!string.IsNullOrEmpty(h.OnBehalfOfAdminId))
                                 {
-                                    <small class="text-warning"><i class="bi bi-shield-lock"></i> via Remote-Zugriff durch @(Model.ActorName(h.OnBehalfOfAdminId))</small>
+                                    <small class="text-warning d-block"><i class="bi bi-shield-lock"></i> via Remote-Zugriff durch @(Model.ActorName(h.OnBehalfOfAdminId))</small>
                                 }
                             </td>
                             <td>
@@ -175,10 +206,35 @@
                                 }
                             </td>
                             <td><i class="bi bi-person-circle text-muted me-1"></i>@Model.ActorName(h.ActorUserId)</td>
+                            <td class="text-end">
+                                @if (!fromContact)
+                                {
+                                    <button type="button" class="btn btn-sm btn-link text-muted py-0" onclick="toggleHistoryEdit(this, true)" title="Bearbeiten">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                    <form method="post" asp-page-handler="DeleteHistory" class="d-inline"
+                                          onsubmit="return confirm('Eintrag wirklich löschen?');">
+                                        <input type="hidden" name="entryId" value="@h.Id" />
+                                        <input type="hidden" name="IncludeContacts" value="@Model.IncludeContacts" />
+                                        <button class="btn btn-sm btn-link text-muted py-0" title="Löschen"><i class="bi bi-trash"></i></button>
+                                    </form>
+                                }
+                            </td>
                         </tr>
                     }
                 </tbody>
             </table>
+            <script>
+                window.toggleHistoryEdit = window.toggleHistoryEdit || function (btn, edit) {
+                    var row = btn.closest('tr'); if (!row) return;
+                    var d = row.querySelector('[data-history-display]');
+                    var f = row.querySelector('[data-history-edit]');
+                    if (!d || !f) return;
+                    d.classList.toggle('d-none', edit);
+                    f.classList.toggle('d-none', !edit);
+                    if (edit) f.querySelector('textarea')?.focus();
+                };
+            </script>
             <div class="small text-muted">@Model.History.Count Eintrag/Einträge</div>
         }
         break;
@@ -307,6 +363,23 @@
                 </button>
             </div>
         </form>
+        break;
+
+    case var t when t.StartsWith("tool-"):
+        if (Model.ActiveTool is not null)
+        {
+            <div class="embedded-tool-shell">
+                <div class="embedded-tool-header">
+                    <i class="bi @(string.IsNullOrEmpty(Model.ActiveTool.IconClass) ? "bi-window-stack" : Model.ActiveTool.IconClass) me-2"></i>
+                    <strong>@Model.ActiveTool.Label</strong>
+                    <a href="@Model.ActiveToolUrl" target="_blank" rel="noopener" class="ms-auto btn btn-sm btn-outline-secondary" title="In neuem Tab öffnen">
+                        <i class="bi bi-arrow-up-right"></i>
+                    </a>
+                </div>
+                <iframe class="embedded-tool-frame" src="@Model.ActiveToolUrl" referrerpolicy="no-referrer"
+                        sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"></iframe>
+            </div>
+        }
         break;
 }
 </div>

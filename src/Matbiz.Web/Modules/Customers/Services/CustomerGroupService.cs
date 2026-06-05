@@ -105,11 +105,23 @@ public class CustomerGroupService(ApplicationDbContext db)
 
         var all = await db.Customers.AsNoTracking()
             .Include(c => c.Tags).ThenInclude(t => t.Tag)
-            .Include(c => c.CustomFieldValues).ThenInclude(v => v.FieldDefinition)
             .Include(c => c.Company)
             .ToListAsync(ct);
 
-        return all.Where(c => DynamicGroupEvaluator.MatchesContact(c, rules)).OrderBy(c => c.Name).ToList();
+        // Custom-Field-Werte für alle Kontakte als Lookup laden — wird vom Evaluator benötigt.
+        var contactEt = Matbiz.Web.Modules.CustomFields.Models.CustomFieldEntityType.Contact;
+        var rawVals = await db.CustomFieldValues.AsNoTracking()
+            .Where(v => v.EntityType == contactEt)
+            .Join(db.CustomFieldDefinitions.AsNoTracking(),
+                v => v.FieldDefinitionId, d => d.Id,
+                (v, d) => new { v.EntityId, DefKey = d.Key, v.Value })
+            .ToListAsync(ct);
+        var valuesByCustomer = rawVals
+            .GroupBy(x => x.EntityId)
+            .ToDictionary(g => g.Key, g => g.ToDictionary(x => x.DefKey, x => x.Value, StringComparer.OrdinalIgnoreCase));
+
+        return all.Where(c => DynamicGroupEvaluator.MatchesContact(c, rules, valuesByCustomer.GetValueOrDefault(c.Id)))
+            .OrderBy(c => c.Name).ToList();
     }
 
     public async Task<List<Company>> ResolveCompanyMembersAsync(CustomerGroup group, CancellationToken ct = default)
@@ -138,12 +150,12 @@ public class CustomerGroupService(ApplicationDbContext db)
 
 internal static class DynamicGroupEvaluator
 {
-    public static bool MatchesContact(Customer customer, CustomerGroupRules rules)
+    public static bool MatchesContact(Customer customer, CustomerGroupRules rules, Dictionary<string, string?>? customValues = null)
     {
         if (rules.Conditions.Count == 0) return false;
         return rules.Combinator == RuleCombinator.All
-            ? rules.Conditions.All(c => EvalContact(customer, c))
-            : rules.Conditions.Any(c => EvalContact(customer, c));
+            ? rules.Conditions.All(c => EvalContact(customer, c, customValues))
+            : rules.Conditions.Any(c => EvalContact(customer, c, customValues));
     }
 
     public static bool MatchesCompany(Company company, CustomerGroupRules rules)
@@ -154,7 +166,7 @@ internal static class DynamicGroupEvaluator
             : rules.Conditions.Any(c => EvalCompany(company, c));
     }
 
-    private static bool EvalContact(Customer c, CustomerGroupCondition cond)
+    private static bool EvalContact(Customer c, CustomerGroupCondition cond, Dictionary<string, string?>? customValues)
     {
         if (cond.Field == RuleField.Tag)
             return EvalTag(c.Tags.Select(t => t.Tag.Name), cond);
@@ -167,8 +179,8 @@ internal static class DynamicGroupEvaluator
             RuleField.City        => c.City,
             RuleField.Country     => c.Country,
             RuleField.Notes       => c.Notes,
-            RuleField.CustomField => c.CustomFieldValues
-                                      .FirstOrDefault(v => string.Equals(v.FieldDefinition.Key, cond.CustomFieldKey, StringComparison.OrdinalIgnoreCase))?.Value,
+            RuleField.CustomField => customValues is not null && cond.CustomFieldKey is not null
+                                      && customValues.TryGetValue(cond.CustomFieldKey, out var cv) ? cv : null,
             _ => null
         };
         return EvalString(actual, cond);

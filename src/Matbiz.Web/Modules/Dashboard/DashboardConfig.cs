@@ -10,15 +10,29 @@ public enum DashboardWidget
     TeamUpcoming = 3,
     NewContacts = 4,
     RecentHistory = 5,
-    NewCompanies = 6
+    NewCompanies = 6,
+    /// <summary>Custom-Widget: zeigt die ersten N Mitglieder einer Gruppe.</summary>
+    CustomerGroup = 7
 }
 
 public class WidgetConfig
 {
+    /// <summary>Pro-Widget-Instanz eindeutig — erlaubt mehrere Widgets gleichen Typs
+    /// (z.B. mehrere Gruppen-Widgets, jedes mit anderer GroupId).</summary>
+    public Guid Id { get; set; } = Guid.NewGuid();
+
     public DashboardWidget Type { get; set; }
     public bool Enabled { get; set; } = true;
     public int Order { get; set; }
     public int MaxItems { get; set; } = 8;
+
+    // === Custom-Widget Payload ===
+
+    /// <summary>Für Type=CustomerGroup: welche Gruppe wird angezeigt.</summary>
+    public Guid? GroupId { get; set; }
+
+    /// <summary>Optional: vom User vergebener Titel statt Gruppen-Name.</summary>
+    public string? CustomTitle { get; set; }
 }
 
 public class DashboardConfig
@@ -47,12 +61,19 @@ public class DashboardConfig
         try
         {
             var cfg = JsonSerializer.Deserialize<DashboardConfig>(json, JsonOpts) ?? Default();
-            // Ensure every widget type is present so future-added widgets don't
-            // silently disappear for users with an older config blob.
+            // Migration: für alte Configs ohne Id → neue Guid vergeben (sonst kollidieren mehrere
+            // Instanzen des selben Typs später).
+            foreach (var w in cfg.Widgets)
+                if (w.Id == Guid.Empty) w.Id = Guid.NewGuid();
+            // Standard-Widgets ergänzen, falls sie in der gespeicherten Config fehlen.
+            // CustomerGroup-Typ überspringen — ist nutzer-erstellt, nicht Default.
             var defaults = Default();
             foreach (var d in defaults.Widgets)
+            {
+                if (d.Type == DashboardWidget.CustomerGroup) continue;
                 if (!cfg.Widgets.Any(w => w.Type == d.Type))
                     cfg.Widgets.Add(d);
+            }
             return cfg;
         }
         catch
@@ -75,6 +96,7 @@ public static class DashboardWidgetMeta
         DashboardWidget.NewContacts   => ("Neue Kontakte",         "bi-person-plus"),
         DashboardWidget.NewCompanies  => ("Neue Firmen",           "bi-building-add"),
         DashboardWidget.RecentHistory => ("Letzte Historieneinträge", "bi-clock-history"),
+        DashboardWidget.CustomerGroup => ("Gruppe",                   "bi-collection"),
         _ => (w.ToString(), "bi-grid")
     };
 }

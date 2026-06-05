@@ -5,8 +5,6 @@
     var c = Model.Customer!;
 }
 
-<a class="btn btn-link mb-2 ps-0" href="/Customers"><i class="bi bi-arrow-left"></i> Übersicht</a>
-
 @if (TempData["StatusMessage"] is string msg)
 {
     <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
@@ -26,7 +24,10 @@
                     <span>@c.CompanyName</span>
                 }
             </div>
-            <h1 class="mb-1">@c.Name</h1>
+            <div class="d-flex align-items-start gap-2">
+                <h1 class="mb-1 me-auto">@c.Name</h1>
+                <partial name="_EntityActions" model="@(new Matbiz.Web.Shared.Actions.EntityActionContext(Matbiz.Web.Shared.Actions.EntityTypes.Contact, c.Id, null))" />
+            </div>
             <div class="customer-meta">
                 @if (!string.IsNullOrEmpty(c.Email)) { <span><i class="bi bi-envelope"></i> <a href="mailto:@c.Email">@c.Email</a></span> }
                 @if (!string.IsNullOrEmpty(c.Phone)) { <span><i class="bi bi-telephone"></i> <a href="tel:@c.Phone">@c.Phone</a></span> }
@@ -50,43 +51,100 @@
                     </form>
                 }
 
-                <details class="tag-add-wrap">
-                    <summary class="tag-add-chip">
+                <span class="tag-add">
+                    <button type="button" class="tag-add-chip" onclick="tagAdd.open(this)">
                         <i class="bi bi-plus-lg"></i> Tag
-                    </summary>
-                    <form method="post" asp-page-handler="AddTag" class="tag-add-form ms-2">
-                        <input name="NewTag" list="all-tags-options" placeholder="Tag-Name…"
-                               autocomplete="off" autofocus />
+                    </button>
+                    <form method="post" asp-page-handler="AddTag" class="tag-add-form" style="display: none;">
+                        <input name="NewTag" list="contact-tags-options" placeholder="Tag-Name…"
+                               autocomplete="off" onkeydown="tagAdd.handleKey(event)" />
+                        <button type="button" class="tag-add-x" onclick="tagAdd.close(this)" title="Abbrechen (ESC)">
+                            <i class="bi bi-x"></i>
+                        </button>
                         <button type="submit" class="btn btn-sm btn-primary py-0 px-2"
                                 style="font-size: 0.78rem;"><i class="bi bi-check2"></i></button>
-                        <datalist id="all-tags-options">
+                        <datalist id="contact-tags-options">
                             @foreach (var t in Model.AllTags.Where(t => !c.Tags.Any(ct => ct.TagId == t.Id)))
                             {
                                 <option value="@t.Name" />
                             }
                         </datalist>
                     </form>
-                </details>
+                </span>
             </div>
         </div>
     </div>
 </div>
 
 <ul class="nav nav-tabs mt-4" id="customer-tabs">
-    @foreach (var (key, icon, label, count) in new (string, string, string, int?)[]
+    @{
+        // Tab order: Historie (default) | Stammdaten | <user sections...> | <Eigene Felder if any unsectioned> | Aufgaben | Dateien
+        var coreLeft = new (string Key, string Icon, string Label, int? Count)[]
+        {
+            ("historie", "bi-clock-history", "Historie", c.History.Count > 0 ? c.History.Count : null),
+            ("stammdaten", "bi-card-list", "Stammdaten", null),
+        };
+        var coreRight = new (string Key, string Icon, string Label, int? Count)[]
+        {
+            ("aufgaben", "bi-check2-square", "Aufgaben", Model.Tasks.Count > 0 ? Model.Tasks.Count : null),
+            ("dateien", "bi-paperclip", "Dateien", Model.LibraryFiles.Count > 0 ? Model.LibraryFiles.Count : null),
+        };
+    }
+
+    @foreach (var t in coreLeft)
     {
-        ("stammdaten", "bi-card-list", "Stammdaten", null),
-        ("felder", "bi-sliders", "Eigene Felder", Model.Definitions.Count > 0 ? Model.Definitions.Count : null),
-        ("historie", "bi-clock-history", "Historie", c.History.Count > 0 ? c.History.Count : null),
-        ("aufgaben", "bi-check2-square", "Aufgaben", Model.Tasks.Count > 0 ? Model.Tasks.Count : null),
-        ("dateien", "bi-paperclip", "Dateien", Model.LibraryFiles.Count > 0 ? Model.LibraryFiles.Count : null)
-    })
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == t.Key ? "active" : "")"
+               href="/Customers/@Model.Id?tab=@t.Key">
+                <i class="bi @t.Icon"></i> @t.Label
+                @if (t.Count is int n) { <span class="badge bg-secondary ms-1">@n</span> }
+            </a>
+        </li>
+    }
+
+    @foreach (var s in Model.Sections.Where(s => s.Fields.Count > 0))
     {
+        var key = $"section-{s.Id}";
         <li class="nav-item">
             <a class="nav-link @(Model.ActiveTab == key ? "active" : "")"
                href="/Customers/@Model.Id?tab=@key">
-                <i class="bi @icon"></i> @label
-                @if (count is int n) { <span class="badge bg-secondary ms-1">@n</span> }
+                <i class="bi bi-sliders"></i> @s.Name
+                <span class="badge bg-secondary ms-1">@s.Fields.Count</span>
+            </a>
+        </li>
+    }
+
+    @if (Model.HasUnsectionedFields)
+    {
+        var unsCount = Model.Definitions.Count(d => d.SectionId is null);
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == "felder" ? "active" : "")"
+               href="/Customers/@Model.Id?tab=felder">
+                <i class="bi bi-sliders"></i> Eigene Felder
+                <span class="badge bg-secondary ms-1">@unsCount</span>
+            </a>
+        </li>
+    }
+
+    @foreach (var t in coreRight)
+    {
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == t.Key ? "active" : "")"
+               href="/Customers/@Model.Id?tab=@t.Key">
+                <i class="bi @t.Icon"></i> @t.Label
+                @if (t.Count is int n) { <span class="badge bg-secondary ms-1">@n</span> }
+            </a>
+        </li>
+    }
+
+    @foreach (var tool in Model.ToolItems)
+    {
+        var tkey = $"tool-{tool.Id}";
+        var ticon = string.IsNullOrEmpty(tool.IconClass) ? "bi-window-stack" : tool.IconClass;
+        <li class="nav-item">
+            <a class="nav-link @(Model.ActiveTab == tkey ? "active" : "")"
+               href="/Customers/@Model.Id?tab=@tkey">
+                <i class="bi @ticon"></i> @tool.Label
             </a>
         </li>
     }
@@ -95,11 +153,28 @@
 <div id="tab-content" class="tab-panel">
     @switch (Model.ActiveTab)
     {
-        case "felder": @await Html.PartialAsync("_TabFelder", Model); break;
-        case "historie": @await Html.PartialAsync("_TabHistorie", Model); break;
+        case "stammdaten": @await Html.PartialAsync("_TabStammdaten", Model); break;
         case "aufgaben": @await Html.PartialAsync("_TabAufgaben", Model); break;
         case "dateien": @await Html.PartialAsync("_TabDateien", Model); break;
-        default: @await Html.PartialAsync("_TabStammdaten", Model); break;
+        case "felder": @await Html.PartialAsync("_TabFelder", Model); break;
+        case var t when t.StartsWith("section-"): @await Html.PartialAsync("_TabFelder", Model); break;
+        case var t when t.StartsWith("tool-"):
+            if (Model.ActiveTool is not null)
+            {
+                <div class="embedded-tool-shell">
+                    <div class="embedded-tool-header">
+                        <i class="bi @(string.IsNullOrEmpty(Model.ActiveTool.IconClass) ? "bi-window-stack" : Model.ActiveTool.IconClass) me-2"></i>
+                        <strong>@Model.ActiveTool.Label</strong>
+                        <a href="@Model.ActiveToolUrl" target="_blank" rel="noopener" class="ms-auto btn btn-sm btn-outline-secondary" title="In neuem Tab öffnen">
+                            <i class="bi bi-arrow-up-right"></i>
+                        </a>
+                    </div>
+                    <iframe class="embedded-tool-frame" src="@Model.ActiveToolUrl" referrerpolicy="no-referrer"
+                            sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"></iframe>
+                </div>
+            }
+            break;
+        default: @await Html.PartialAsync("_TabHistorie", Model); break;
     }
 </div>
 

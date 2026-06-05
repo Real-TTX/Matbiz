@@ -1,0 +1,92 @@
+@page "/Users/Edit/{Id?}"
+@model Matbiz.Web.Pages.Users.EditModel
+@{
+    ViewData["Title"] = Model.IsNew ? "Neuer Benutzer" : Model.Target?.DisplayName ?? Model.Target?.Email ?? "Benutzer";
+    Layout = "_AdminLayout";
+}
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">@(Model.IsNew ? "Neuer Benutzer" : Model.Target?.DisplayName ?? Model.Target?.Email)</h1>
+    @if (Model.IsSelf)
+    {
+        <span class="badge bg-info-subtle text-info"><i class="bi bi-person-fill"></i> Du selbst</span>
+    }
+</div>
+
+@if (TempData["StatusMessage"] is string msg)
+{
+    <div class="alert alert-success py-2"><i class="bi bi-check-circle"></i> @msg</div>
+}
+@if (TempData["StatusError"] is string err)
+{
+    <div class="alert alert-danger py-2"><i class="bi bi-exclamation-triangle"></i> @err</div>
+}
+
+@if (Model.IsSelf)
+{
+    <div class="alert alert-info py-2">
+        <i class="bi bi-info-circle"></i>
+        Deine eigene <strong>Rolle</strong>, dein <strong>Aktiv-Status</strong> und die <strong>Löschen</strong>-Aktion sind hier deaktiviert.
+        Mindestens ein Admin muss erhalten bleiben.
+    </div>
+}
+
+<form method="post" asp-page-handler="Save" class="row g-3" style="max-width: 900px;">
+    <div asp-validation-summary="ModelOnly" class="text-danger small col-12"></div>
+
+    <div class="col-md-6">
+        <label class="form-label">E-Mail (Login) *</label>
+        <input class="form-control" asp-for="Email" required />
+        <span asp-validation-for="Email" class="text-danger small"></span>
+    </div>
+    <div class="col-md-6">
+        <label class="form-label">Anzeigename</label>
+        <input class="form-control" asp-for="DisplayName" />
+    </div>
+
+    <div class="col-md-4">
+        <label class="form-label">Rolle</label>
+        <select class="form-select" asp-for="Role" disabled="@Model.IsSelf">
+            <option value="User">User</option>
+            <option value="Admin">Admin</option>
+        </select>
+        @if (Model.IsSelf)
+        {
+            <input type="hidden" name="Role" value="@Model.Role" />
+            <div class="form-text">Eigene Rolle nicht änderbar.</div>
+        }
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">Status</label>
+        <div class="form-check form-switch mt-2">
+            <input class="form-check-input" type="checkbox" asp-for="IsActive" id="actSwitch" disabled="@Model.IsSelf" />
+            <label class="form-check-label" for="actSwitch">
+                @(Model.IsActive ? "Aktiv" : "Deaktiviert")
+            </label>
+        </div>
+        @if (Model.IsSelf)
+        {
+            <input type="hidden" name="IsActive" value="@Model.IsActive.ToString().ToLower()" />
+            <div class="form-text">Eigenen Status nicht änderbar.</div>
+        }
+    </div>
+    <div class="col-md-4">
+        <label class="form-label">@(Model.IsNew ? "Passwort *" : "Neues Passwort (optional)")</label>
+        <input type="password" class="form-control" asp-for="NewPassword" autocomplete="new-password"
+               placeholder="@(Model.IsNew ? "min. 8 Zeichen" : "leer lassen = unverändert")" />
+        <span asp-validation-for="NewPassword" class="text-danger small"></span>
+    </div>
+
+    <div class="d-flex gap-2 mt-3">
+        <button type="submit" class="btn btn-primary"><i class="bi bi-check2"></i> Speichern</button>
+        <a class="btn btn-secondary" href="/Users"><i class="bi bi-x-lg"></i> Abbrechen</a>
+
+        @if (!Model.IsNew && !Model.IsSelf)
+        {
+            <button type="submit" formaction="?handler=Delete" class="btn btn-outline-danger ms-auto"
+                    onclick="return confirm('Benutzer „@(Model.Target?.DisplayName ?? Model.Target?.Email)\" wirklich endgültig löschen? Diese Aktion kann nicht rückgängig gemacht werden.');">
+                <i class="bi bi-trash"></i> Endgültig löschen
+            </button>
+        }
+    </div>
+</form>

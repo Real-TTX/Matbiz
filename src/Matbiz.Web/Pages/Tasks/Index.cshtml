@@ -28,25 +28,22 @@
     </a>
 </div>
 
-<form class="filter-bar mb-3"
+<form class="list-toolbar"
       hx-get="/Tasks"
       hx-trigger="input changed delay:200ms from:input[name=Q], change from:select"
       hx-target="#task-table"
       hx-swap="outerHTML"
       hx-push-url="true">
 
-    <div class="position-relative" style="max-width: 260px; flex: 1 1 260px;">
-        <i class="bi bi-search position-absolute" style="left: 0.75rem; top: 0.6rem; color: var(--text-muted);"></i>
-        <input class="form-control ps-5" placeholder="Aufgaben suchen…" name="Q" value="@Model.Q" autocomplete="off" />
-    </div>
+    <input class="form-control form-control-sm list-toolbar-search" placeholder="Aufgaben suchen…" name="Q" value="@Model.Q" autocomplete="off" />
 
-    <select class="form-select" name="Scope" style="max-width: 180px;">
-        <option value="all" selected="@(Model.Scope == "all")">Alle (ich + Team)</option>
-        <option value="mine" selected="@(Model.Scope == "mine")">Nur meine</option>
-        <option value="team" selected="@(Model.Scope == "team")">Nur Team</option>
+    <select class="form-select form-select-sm" name="Scope">
+        <option value="all" selected="@(Model.Scope == "all")">Alle</option>
+        <option value="mine" selected="@(Model.Scope == "mine")">Meine</option>
+        <option value="team" selected="@(Model.Scope == "team")">Team</option>
     </select>
 
-    <select class="form-select" name="Status" style="max-width: 180px;">
+    <select class="form-select form-select-sm" name="Status">
         <option value="open" selected="@(Model.Status == "open")">Status: Offen</option>
         <option value="overdue" selected="@(Model.Status == "overdue")">Status: Überfällig</option>
         <option value="today" selected="@(Model.Status == "today")">Status: Heute</option>
@@ -55,13 +52,15 @@
         <option value="all" selected="@(Model.Status == "all")">Status: Alle</option>
     </select>
 
-    <select class="form-select" name="Priority" style="max-width: 180px;">
+    <select class="form-select form-select-sm" name="Priority">
         <option value="">Priorität: Alle</option>
         <option value="Urgent" selected="@(Model.Priority == TaskPriority.Urgent)">Dringend</option>
         <option value="High" selected="@(Model.Priority == TaskPriority.High)">Hoch</option>
         <option value="Normal" selected="@(Model.Priority == TaskPriority.Normal)">Normal</option>
         <option value="Low" selected="@(Model.Priority == TaskPriority.Low)">Niedrig</option>
     </select>
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="task-list-body">@Model.Filtered.Count()</span> Eintrag/Einträge</span>
 </form>
 
 @await Html.PartialAsync("_TaskTable", Model)

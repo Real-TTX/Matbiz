@@ -18,6 +18,7 @@ public class IndexModel(
     TaskService tasks,
     CustomerService customers,
     CompanyService companies,
+    CustomerGroupService groups,
     UserManager<ApplicationUser> users) : PageModel
 {
     public List<TaskItem> Mine { get; private set; } = new();
@@ -27,6 +28,14 @@ public class IndexModel(
     public List<Company> NewCompanies { get; private set; } = new();
     public List<CustomerHistoryEntry> RecentHistory { get; private set; } = new();
     public DashboardConfig Config { get; private set; } = DashboardConfig.Default();
+
+    /// <summary>Pro Gruppen-Widget-Id: aufgelöste Mitglieder + Group-Meta. Wird vom Razor genutzt.</summary>
+    public Dictionary<Guid, GroupWidgetData> GroupWidgetItems { get; private set; } = new();
+
+    /// <summary>Alle Gruppen — für das Hinzufügen-Dropdown im Konfig-Modus.</summary>
+    public List<CustomerGroup> AllGroups { get; private set; } = new();
+
+    public record GroupWidgetData(CustomerGroup Group, List<Customer> Contacts, List<Company> Companies);
 
     public DateTime Today => DateTime.UtcNow.Date;
     public DateTime WeekEnd => DateTime.UtcNow.Date.AddDays(7);
@@ -78,6 +87,22 @@ public class IndexModel(
         var historyWidget = Config.Widgets.FirstOrDefault(w => w.Type == DashboardWidget.RecentHistory);
         if (historyWidget is { Enabled: true })
             RecentHistory = await customers.RecentHistoryAsync(Math.Max(1, historyWidget.MaxItems));
+
+        // === Gruppen-Widgets auflösen ===
+        AllGroups = await groups.ListAsync();
+        foreach (var gw in Config.Widgets.Where(w => w.Type == DashboardWidget.CustomerGroup && w.Enabled && w.GroupId is not null))
+        {
+            var grp = AllGroups.FirstOrDefault(g => g.Id == gw.GroupId);
+            if (grp is null) continue;
+            var max = Math.Max(1, gw.MaxItems);
+            var contacts = new List<Customer>();
+            var comps = new List<Company>();
+            if (grp.EntityKind == CustomerGroupEntityKind.Company)
+                comps = (await groups.ResolveCompanyMembersAsync(grp)).Take(max).ToList();
+            else
+                contacts = (await groups.ResolveContactMembersAsync(grp)).Take(max).ToList();
+            GroupWidgetItems[gw.Id] = new GroupWidgetData(grp, contacts, comps);
+        }
     }
 
     public async Task<IActionResult> OnPostSaveConfigAsync([FromForm] DashboardSubmitDto dto)
@@ -91,10 +116,13 @@ public class IndexModel(
                 .OrderBy(w => w.Order)
                 .Select(w => new WidgetConfig
                 {
+                    Id = w.Id == Guid.Empty ? Guid.NewGuid() : w.Id,
                     Type = w.Type,
                     Enabled = w.Enabled,
                     Order = w.Order,
-                    MaxItems = Math.Clamp(w.MaxItems, 1, 50)
+                    MaxItems = Math.Clamp(w.MaxItems, 1, 50),
+                    GroupId = w.GroupId,
+                    CustomTitle = string.IsNullOrWhiteSpace(w.CustomTitle) ? null : w.CustomTitle.Trim()
                 }).ToList()
         };
         user.DashboardConfigJson = DashboardConfig.Save(cfg);
@@ -102,20 +130,39 @@ public class IndexModel(
         return RedirectToPage();
     }
 
-    public async Task<IActionResult> OnPostMoveAsync(DashboardWidget type, int delta)
+    public async Task<IActionResult> OnPostAddGroupWidgetAsync(Guid groupId)
     {
         var user = await users.GetUserAsync(User);
         if (user is null) return Forbid();
         var cfg = DashboardConfig.Load(user.DashboardConfigJson);
-        var sorted = cfg.Widgets.OrderBy(w => w.Order).ToList();
-        var idx = sorted.FindIndex(w => w.Type == type);
-        var newIdx = idx + delta;
-        if (idx < 0 || newIdx < 0 || newIdx >= sorted.Count) return RedirectToPage();
-        (sorted[idx], sorted[newIdx]) = (sorted[newIdx], sorted[idx]);
-        for (var i = 0; i < sorted.Count; i++) sorted[i].Order = i;
-        cfg.Widgets = sorted;
+        var maxOrder = cfg.Widgets.Any() ? cfg.Widgets.Max(w => w.Order) : 0;
+        cfg.Widgets.Add(new WidgetConfig
+        {
+            Type = DashboardWidget.CustomerGroup,
+            Enabled = true,
+            Order = maxOrder + 1,
+            MaxItems = 5,
+            GroupId = groupId
+        });
         user.DashboardConfigJson = DashboardConfig.Save(cfg);
         await users.UpdateAsync(user);
+        return RedirectToPage();
+    }
+
+    public async Task<IActionResult> OnPostRemoveWidgetAsync(Guid id)
+    {
+        var user = await users.GetUserAsync(User);
+        if (user is null) return Forbid();
+        var cfg = DashboardConfig.Load(user.DashboardConfigJson);
+        var w = cfg.Widgets.FirstOrDefault(x => x.Id == id);
+        // Nur CustomerGroup-Widgets sind löschbar — Standard-Widgets bleiben erhalten
+        // und können nur deaktiviert werden.
+        if (w is not null && w.Type == DashboardWidget.CustomerGroup)
+        {
+            cfg.Widgets.Remove(w);
+            user.DashboardConfigJson = DashboardConfig.Save(cfg);
+            await users.UpdateAsync(user);
+        }
         return RedirectToPage();
     }
 
@@ -126,9 +173,12 @@ public class IndexModel(
 
     public class WidgetRow
     {
+        public Guid Id { get; set; }
         public DashboardWidget Type { get; set; }
         public bool Enabled { get; set; }
         public int Order { get; set; }
         public int MaxItems { get; set; } = 8;
+        public Guid? GroupId { get; set; }
+        public string? CustomTitle { get; set; }
     }
 }

@@ -1,0 +1,17 @@
+@page "/Tools/{Id:guid}"
+@model Matbiz.Web.Pages.Tools.ViewModel
+@{
+    ViewData["Title"] = Model.Item?.Label ?? "Tool";
+    var item = Model.Item!;
+}
+
+<div class="embedded-tool-shell">
+    <div class="embedded-tool-header">
+        <i class="bi @(string.IsNullOrEmpty(item.IconClass) ? "bi-window-stack" : item.IconClass) me-2"></i>
+        <strong>@item.Label</strong>
+        <a href="@item.Url" target="_blank" rel="noopener" class="ms-auto btn btn-sm btn-outline-secondary" title="In neuem Tab öffnen">
+            <i class="bi bi-arrow-up-right"></i>
+        </a>
+    </div>
+    <iframe class="embedded-tool-frame" src="@item.Url" referrerpolicy="no-referrer" sandbox="allow-same-origin allow-scripts allow-forms allow-popups allow-downloads"></iframe>
+</div>

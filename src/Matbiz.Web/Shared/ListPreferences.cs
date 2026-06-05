@@ -40,11 +40,12 @@ public static class ListPreferences
             var known = row.Known?.ToHashSet() ?? new HashSet<string>();
 
             // Columns added since the user last saved: if they default to visible
-            // AND the user has never seen them, opt them in automatically. This
-            // is how new default columns appear for established users without
-            // them needing to "Reset".
+            // AND the user has never seen them, opt them in automatically. For
+            // legacy prefs (saved before we tracked Known), we treat *every*
+            // default-visible column as potentially new — one-time correction
+            // until the user saves again and Known gets populated.
             foreach (var col in all)
-                if (col.DefaultVisible && !known.Contains(col.Key) && known.Count > 0)
+                if (col.DefaultVisible && !known.Contains(col.Key))
                     visible.Add(col.Key);
 
             // Drop keys that no longer exist in the column set.

@@ -3,34 +3,32 @@
 
 <div id="task-table">
     @{ var items = Model.Filtered.ToList(); }
-    @if (items.Count == 0)
-    {
-        <div class="empty-state">
-            <i class="bi bi-clipboard-check"></i>
-            <p class="mt-2 mb-0 text-muted">Keine Aufgaben in dieser Ansicht.</p>
-        </div>
-    }
-    else
-    {
-        <table class="table table-hover align-middle">
-            <thead>
-                <tr>
-                    <th style="width: 40px;"></th>
-                    <th>Titel</th>
-                    <th style="width: 130px;">Priorität</th>
-                    <th style="width: 130px;">Status</th>
-                    <th>Zuweisung</th>
-                    <th>Kontakt</th>
-                    <th style="width: 120px;">Fällig</th>
-                    <th style="width: 50px;"></th>
-                </tr>
-            </thead>
-            <tbody>
+    <table class="table table-hover align-middle">
+        <thead>
+            <tr>
+                <th style="width: 40px;"></th>
+                <th>Titel</th>
+                <th style="width: 130px;">Priorität</th>
+                <th style="width: 130px;">Status</th>
+                <th>Zuweisung</th>
+                <th>Kontakt</th>
+                <th style="width: 120px;">Fällig</th>
+                <th style="width: 50px;"></th>
+            </tr>
+        </thead>
+        <tbody id="task-list-body" data-paginate data-page-size="50">
+            @if (items.Count == 0)
+            {
+                <tr class="empty-row"><td colspan="8">Keine Daten</td></tr>
+            }
+            else
+            {
                 @foreach (var t in items)
                 {
+                    var tFilter = t.Title + " " + (t.CustomerId is Guid cid2 && Model.CustomerNames.TryGetValue(cid2, out var cn) ? cn : "") + " " + Model.AssigneeLabel(t);
                     var overdue = Model.IsOverdue(t);
                     var returnUrl = $"/Tasks?scope={Model.Scope}&status={Model.Status}";
-                    <tr class="@(t.Status == TaskStatus.Done ? "task-row-done" : "") @(overdue ? "task-row-overdue" : "")">
+                    <tr class="@(t.Status == TaskStatus.Done ? "task-row-done" : "") @(overdue ? "task-row-overdue" : "")" data-filter-text="@tFilter">
                         <td>
                             <form method="post" action="/Tasks/Toggle?id=@t.Id&returnUrl=@Uri.EscapeDataString(returnUrl)" class="task-check">
                                 @Html.AntiForgeryToken()
@@ -41,7 +39,7 @@
                                 <span class="check-mark"><i class="bi bi-check-lg"></i></span>
                             </form>
                         </td>
-                        <td><a class="task-title-link" href="/Tasks/@t.Id">@t.Title</a></td>
+                        <td><a class="task-title-link" href="/Tasks/Edit/@t.Id">@t.Title</a></td>
                         <td>
                             @switch (t.Priority)
                             {
@@ -84,13 +82,13 @@
                                 <span class="@(overdue ? "text-danger fw-bold" : "")"><i class="bi bi-calendar3"></i> @due.ToLocalTime().ToString("dd.MM.yyyy")</span>
                             }
                         </td>
-                        <td class="text-end">
-                            <a class="btn btn-link btn-sm text-muted py-0" href="/Tasks/@t.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
-                        </td>
-                    </tr>
+                    <td class="text-end">
+                        <a class="btn btn-link btn-sm text-muted py-0" href="/Tasks/Edit/@t.Id" title="Bearbeiten"><i class="bi bi-pencil"></i></a>
+                    </td>
+                </tr>
                 }
-            </tbody>
-        </table>
-        <div class="small text-muted">@items.Count Aufgabe(n)</div>
-    }
+            }
+        </tbody>
+    </table>
+    <div data-pagination="task-list-body"></div>
 </div>

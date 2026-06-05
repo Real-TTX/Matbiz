@@ -1,0 +1,83 @@
+@inject Matbiz.Web.Modules.SystemSettings.Services.BrandingService Branding
+@inject Microsoft.AspNetCore.Antiforgery.IAntiforgery Antiforgery
+@inject UserManager<Matbiz.Web.Data.ApplicationUser> Users
+@{
+    var brand = await Branding.GetAsync();
+    var primary = string.IsNullOrWhiteSpace(brand.PrimaryColor) ? "#1b6ec2" : brand.PrimaryColor;
+    var accent1 = brand.AccentColor1;
+    var accent2 = brand.AccentColor2;
+    var onPrimary = Matbiz.Web.Modules.SystemSettings.ContrastHelper.OnColor(primary);
+
+    var theme = "system";
+    if (User.Identity?.IsAuthenticated == true)
+    {
+        var u = await Users.GetUserAsync(User);
+        if (u is not null) theme = u.Theme.ToString().ToLowerInvariant();
+    }
+
+    var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
+}
+<!DOCTYPE html>
+<html lang="de" data-theme="@theme" data-bs-theme="@(theme == "dark" ? "dark" : "light")">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] – Administration · @brand.AppName</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <style>
+        :root {
+            --brand-primary: @primary;
+            --brand-accent-1: @accent1;
+            --brand-accent-2: @accent2;
+            --on-primary: @onPrimary;
+        }
+        .btn-primary, .bg-primary {
+            background-color: var(--brand-primary) !important;
+            border-color: var(--brand-primary) !important;
+            color: var(--on-primary) !important;
+        }
+        a { color: var(--brand-primary); }
+        .btn-primary:hover { filter: brightness(0.92); }
+    </style>
+    <meta name="csrf-token" content="@csrf" />
+    @if (theme == "system")
+    {
+        <script>
+            (function () {
+                var mql = window.matchMedia('(prefers-color-scheme: dark)');
+                function apply() { document.documentElement.setAttribute('data-bs-theme', mql.matches ? 'dark' : 'light'); }
+                apply();
+                mql.addEventListener('change', apply);
+            })();
+        </script>
+    }
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
+    <script>
+        document.addEventListener('htmx:configRequest', function (evt) {
+            var token = document.querySelector('meta[name=csrf-token]')?.getAttribute('content');
+            if (token) evt.detail.headers['RequestVerificationToken'] = token;
+        });
+    </script>
+</head>
+<body>
+    <partial name="_ImpersonationBanner" />
+    <div class="page">
+        <aside class="sidebar admin-sidebar">
+            <partial name="_AdminNavMenu" model="@brand" />
+        </aside>
+        <main>
+            <article class="content px-4 py-3">
+                <partial name="_Breadcrumbs" />
+                @RenderBody()
+            </article>
+        </main>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/list.js" asp-append-version="true"></script>
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

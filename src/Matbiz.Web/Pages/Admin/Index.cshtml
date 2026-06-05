@@ -1,0 +1,68 @@
+@page
+@model Matbiz.Web.Pages.Admin.IndexModel
+@{ ViewData["Title"] = "Admin-Dashboard"; }
+
+<h1>Admin-Dashboard</h1>
+<p class="text-muted">Überblick über die Systemkonfiguration und Schnellzugriff auf alle Admin-Bereiche.</p>
+
+<div class="row g-3 mb-4">
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Users">
+            <div class="stat-icon bg-open"><i class="bi bi-people"></i></div>
+            <div>
+                <div class="stat-value">@Model.ActiveUserCount</div>
+                <div class="stat-label">Aktive Benutzer (@Model.UserCount gesamt)</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Users">
+            <div class="stat-icon bg-today"><i class="bi bi-shield-fill"></i></div>
+            <div>
+                <div class="stat-value">@Model.AdminCount</div>
+                <div class="stat-label">Administratoren</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Departments">
+            <div class="stat-icon bg-week"><i class="bi bi-diagram-3"></i></div>
+            <div>
+                <div class="stat-value">@Model.DepartmentCount</div>
+                <div class="stat-label">Abteilungen</div>
+            </div>
+        </a>
+    </div>
+    <div class="col-6 col-md-3">
+        <a class="stat-card" href="/Teams">
+            <div class="stat-icon bg-overdue"><i class="bi bi-people-fill"></i></div>
+            <div>
+                <div class="stat-value">@Model.TeamCount</div>
+                <div class="stat-label">Teams</div>
+            </div>
+        </a>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-6">
+        <div class="panel">
+            <div class="panel-header"><h5 class="mb-0"><i class="bi bi-people me-2"></i>Benutzer &amp; Organisation</h5></div>
+            <ul class="dash-list">
+                <li class="dash-row"><a class="dash-row-body" href="/Users"><strong>Benutzer</strong><div class="small text-muted">Mitarbeiter anlegen, Rollen vergeben, Remote-Zugriff</div></a></li>
+                <li class="dash-row"><a class="dash-row-body" href="/Departments"><strong>Abteilungen</strong><div class="small text-muted">Organigramm, Teams zuordnen</div></a></li>
+                <li class="dash-row"><a class="dash-row-body" href="/Teams"><strong>Teams</strong><div class="small text-muted">Mitgliedschaften, geteilte Aufgabenlisten</div></a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="panel">
+            <div class="panel-header"><h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Konfiguration</h5></div>
+            <ul class="dash-list">
+                <li class="dash-row"><a class="dash-row-body" href="/Customers/Fields"><strong>Kontaktfelder</strong><div class="small text-muted">Eigene Felder + Sektionen / Tabs</div></a></li>
+                <li class="dash-row"><a class="dash-row-body" href="/Admin/Menu"><strong>Menü-Einträge</strong><div class="small text-muted">@Model.CustomMenuItemCount externe Tool-Links</div></a></li>
+                <li class="dash-row"><a class="dash-row-body" href="/System/Appearance"><strong>Aussehen</strong><div class="small text-muted">App-Name, Farben, Logo</div></a></li>
+            </ul>
+        </div>
+    </div>
+</div>

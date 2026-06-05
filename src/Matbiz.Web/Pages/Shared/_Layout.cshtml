@@ -19,7 +19,17 @@
     var csrf = Antiforgery.GetAndStoreTokens(Context).RequestToken;
 }
 <!DOCTYPE html>
-<html lang="de" data-theme="@theme">
+@*
+    Two theme attributes:
+      data-theme        — drives our own CSS tokens (--bg, --text, …).
+      data-bs-theme     — drives Bootstrap's own utility classes (text-muted,
+                          bg-light, table-striped, etc.) so they don't stay
+                          stuck in light mode.
+
+    For "system" we resolve to "light" server-side and let a tiny script
+    flip both attributes if the OS prefers dark — and listen for changes.
+*@
+<html lang="de" data-theme="@theme" data-bs-theme="@(theme == "dark" ? "dark" : "light")">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -43,7 +53,23 @@
         .btn-primary:hover { filter: brightness(0.92); }
     </style>
     <meta name="csrf-token" content="@csrf" />
+    @if (theme == "system")
+    {
+        <script>
+            // System theme: keep data-theme="system" so our prefers-color-scheme
+            // CSS rules adapt, plus flip data-bs-theme so Bootstrap follows along.
+            (function () {
+                var mql = window.matchMedia('(prefers-color-scheme: dark)');
+                function apply() {
+                    document.documentElement.setAttribute('data-bs-theme', mql.matches ? 'dark' : 'light');
+                }
+                apply();
+                mql.addEventListener('change', apply);
+            })();
+        </script>
+    }
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js"></script>
     <script>
         // Send the antiforgery token with every htmx-triggered request so
         // server-side handlers can validate without us touching every form.
@@ -89,6 +115,31 @@
                 if (lblEl) lblEl.textContent = emptyText || '— nichts ausgewählt —';
             }
         };
+
+        // Tag-add chip → input swap. The "+ Tag" pill hides itself when the
+        // user clicks it; an inline form takes its place with input + X +
+        // submit. ESC inside the input also cancels.
+        window.tagAdd = {
+            open: function (btn) {
+                var wrap = btn.parentElement;
+                btn.style.display = 'none';
+                var form = wrap.querySelector('form.tag-add-form');
+                if (form) form.style.display = 'inline-flex';
+                var inp = form && form.querySelector('input[name=NewTag]');
+                if (inp) { inp.value = ''; setTimeout(function () { inp.focus(); }, 10); }
+            },
+            close: function (elem) {
+                var wrap = elem.closest('.tag-add');
+                if (!wrap) return;
+                var btn = wrap.querySelector('.tag-add-chip');
+                var form = wrap.querySelector('form.tag-add-form');
+                if (form) form.style.display = 'none';
+                if (btn) btn.style.display = 'inline-flex';
+            },
+            handleKey: function (e) {
+                if (e.key === 'Escape') { e.preventDefault(); window.tagAdd.close(e.target); }
+            }
+        };
         // Backwards-compatible alias — the customer picker partial still references this name.
         window.customerPicker = window.entityPicker;
     </script>
@@ -102,11 +153,14 @@
         </aside>
         <main>
             <article class="content px-4 py-3">
+                <partial name="_Breadcrumbs" />
                 @RenderBody()
             </article>
         </main>
     </div>
 
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/list.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

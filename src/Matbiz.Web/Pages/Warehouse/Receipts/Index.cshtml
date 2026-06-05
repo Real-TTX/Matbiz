@@ -1,0 +1,58 @@
+@page
+@model Matbiz.Web.Pages.Warehouse.Receipts.IndexModel
+@using Matbiz.Web.Modules.Warehouse.Models
+@{ ViewData["Title"] = "Wareneingänge"; }
+
+<div class="d-flex align-items-center mb-3">
+    <h1 class="me-auto mb-0">Wareneingänge</h1>
+    <a class="btn btn-primary" href="/Warehouse/Receipts/Edit"><i class="bi bi-plus-lg"></i> Neuer Wareneingang</a>
+</div>
+
+<div class="list-toolbar">
+    <input class="form-control form-control-sm list-toolbar-search" data-filter-search="receipt-list-body" placeholder="Suche Nummer, Lieferant…" />
+    <div class="list-toolbar-spacer"></div>
+    <span class="text-muted small"><span data-filter-count="receipt-list-body">@Model.Items.Count</span> Eintrag/Einträge</span>
+</div>
+
+<table class="table table-hover align-middle">
+    <thead>
+        <tr>
+            <th style="width: 140px;">Nummer</th>
+            <th style="width: 110px;">Datum</th>
+            <th>Lieferant</th>
+            <th>Lager</th>
+            <th style="width: 110px;">Status</th>
+            <th style="width: 80px;" class="text-end">Aktionen</th>
+        </tr>
+    </thead>
+    <tbody id="receipt-list-body" data-paginate data-page-size="50">
+        @if (Model.Items.Count == 0)
+        {
+            <tr class="empty-row"><td colspan="6">Keine Daten</td></tr>
+        }
+        else
+        {
+            @foreach (var r in Model.Items)
+            {
+                <tr data-filter-text="@r.Number @r.SupplierCompany?.Name @r.Warehouse.Name">
+                    <td><a class="text-decoration-none text-reset" href="/Warehouse/Receipts/Edit/@r.Id"><code><strong>@r.Number</strong></code></a></td>
+                    <td>@r.ReceiptDate.ToLocalTime().ToString("dd.MM.yyyy")</td>
+                    <td>@(r.SupplierCompany?.Name ?? "—")</td>
+                    <td>@r.Warehouse.Name</td>
+                    <td><span class="badge @Matbiz.Web.Pages.Warehouse.Receipts.IndexModel.StatusBadge(r.Status)">@Matbiz.Web.Pages.Warehouse.Receipts.IndexModel.StatusLabel(r.Status)</span></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-secondary" href="/Warehouse/Receipts/Edit/@r.Id"><i class="bi bi-pencil"></i></a>
+                        @if (r.Status == GoodsReceiptStatus.Draft)
+                        {
+                            <form method="post" asp-page-handler="Delete" asp-route-id="@r.Id" class="d-inline"
+                                  onsubmit="return confirm('Entwurf „@r.Number\" löschen?');">
+                                <button class="btn btn-sm btn-outline-danger"><i class="bi bi-trash"></i></button>
+                            </form>
+                        }
+                    </td>
+                </tr>
+            }
+        }
+    </tbody>
+</table>
+<div data-pagination="receipt-list-body"></div>
