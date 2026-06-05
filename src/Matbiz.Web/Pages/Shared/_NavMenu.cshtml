@@ -69,24 +69,16 @@
 <div class="brand">
     @if (Model.LogoBytes is { Length: > 0 })
     {
-        var hasDarkLogo = Model.LogoDarkBytes is { Length: > 0 };
-        var invertCls = Model.LogoInvertMode switch {
-            "Always"   => " logo-invert-always",
-            "DarkOnly" => " logo-invert-dark",
-            _          => ""
-        };
         var style = $"height: {Model.LogoHeightPx}px; max-height: {Model.LogoHeightPx}px;";
+        var hasDarkLogo = Model.LogoDarkBytes is { Length: > 0 };
+
+        <img class="brand-logo brand-logo-light" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" style="@style" />
         if (hasDarkLogo)
         {
-            // Zwei separate img-Elemente, Theme-abhängige Anzeige via CSS
-            <img class="brand-logo brand-logo-light" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" style="@style" />
-            <img class="brand-logo brand-logo-dark"  src="/branding/logo/dark?v=@Model.Version" alt="@Model.AppName" style="@style" />
+            <img class="brand-logo brand-logo-dark" src="/branding/logo/dark?v=@Model.Version" alt="@Model.AppName" style="@style" />
         }
-        else
-        {
-            <img class="brand-logo@(invertCls)" src="/branding/logo?v=@Model.Version" alt="@Model.AppName" style="@style" />
-        }
-        @if (Model.ShowAppNameUnderLogo)
+
+        if (Model.ShowAppNameUnderLogo)
         {
             <span class="brand-name brand-name-under">@Model.AppName</span>
         }

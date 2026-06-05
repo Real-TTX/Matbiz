@@ -45,28 +45,6 @@
                 <div class="form-text">Aus = nur Logo (sinnvoll wenn der Name schon Teil des Logos ist).</div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Farbinvertierung Logo</label>
-                <select class="form-select" asp-for="LogoInvertMode"
-                        onchange="applyInvertPreview(this.value)">
-                    <option value="None">Aus — Original</option>
-                    <option value="DarkOnly">Nur im Dark Mode invertieren</option>
-                    <option value="Always">Immer invertieren</option>
-                </select>
-                <div class="form-text">
-                    Für schwarz-auf-transparente Logos, die im Dark Mode unsichtbar wären.
-                    Bei farbigen Logos verfälscht die Invertierung die Farben — dann „Aus" lassen.
-                </div>
-            </div>
-            <script>
-                function applyInvertPreview(mode) {
-                    var el = document.getElementById('logo-h-preview');
-                    if (!el) return;
-                    var darkActive = document.documentElement.getAttribute('data-bs-theme') === 'dark';
-                    var invert = (mode === 'Always') || (mode === 'DarkOnly' && darkActive);
-                    el.style.filter = invert ? 'invert(1)' : '';
-                }
-            </script>
 
             @if (Model.Current.LogoBytes is { Length: > 0 })
             {
@@ -121,150 +99,92 @@
     <hr class="my-4" style="max-width: 1000px;" />
 
     <div style="max-width: 1000px;">
-        <h3 class="mb-3"><i class="bi bi-image me-2"></i>Logo</h3>
-        <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-                @if (Model.Current.LogoBytes is { Length: > 0 })
-                {
-                    <div class="logo-preview-checker">
-                        <img src="/branding/logo?v=@Model.Current.Version" alt="Logo" style="max-height: 80px;" />
+        <h3 class="mb-3"><i class="bi bi-image me-2"></i>Logos</h3>
+        <p class="text-muted small">
+            Zwei separate Logo-Slots — jedes wird im jeweiligen Theme angezeigt.
+            Wenn nur ein Light-Logo gesetzt ist, wird es auch im Dark Mode genutzt (Fallback).
+        </p>
+
+        <div class="row g-4">
+
+            <!-- Light Mode -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-light text-dark d-flex align-items-center">
+                        <i class="bi bi-sun me-2"></i><strong>Light Mode</strong>
                     </div>
-                    <div class="form-text small">
-                        Karierter Hintergrund = Transparenz<br />
-                        Format: <code>@(Model.Current.LogoContentType ?? "unbekannt")</code> ·
-                        @((Model.Current.LogoBytes.Length / 1024.0).ToString("N1")) KB
-                        @{
-                            var isSvg = Model.Current.LogoContentType?.Contains("svg") == true;
-                        }
-                        @if (isSvg)
-                        {
-                            <br /><span class="text-warning"><i class="bi bi-exclamation-triangle"></i> SVG — Hintergrund-Filter geht nur mit PNG/JPG.</span>
-                        }
-                    </div>
-                }
-                else
-                {
-                    <div class="text-muted">Noch kein Logo hochgeladen.</div>
-                }
-            </div>
-            <div class="col-md-8">
-                <form method="post" asp-page-handler="UploadLogo" enctype="multipart/form-data" class="row g-2">
-                    <div class="col-12">
-                        <input asp-for="Logo" type="file" class="form-control" accept="image/png,image/jpeg,image/svg+xml,image/webp" />
-                        <div class="form-text">PNG, JPEG, SVG oder WebP — max. 2 MB.</div>
-                    </div>
-                    <div class="col-12">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" asp-for="LogoRemoveWhite" id="logoRmWhite" />
-                            <label class="form-check-label" for="logoRmWhite">Weißen Hintergrund entfernen (→ transparent)</label>
+                    <div class="card-body">
+                        <div class="logo-preview-checker mb-3" style="background-color: #fff;">
+                            @if (Model.Current.LogoBytes is { Length: > 0 })
+                            {
+                                <img src="/branding/logo?v=@Model.Current.Version" alt="Light Logo" style="max-height: 80px;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Kein Logo</span>
+                            }
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small d-flex justify-content-between">
-                            <span>Weiß-Toleranz</span>
-                            <span class="text-muted"><span id="white-tol-val">@Model.LogoWhiteTolerance</span>%</span>
-                        </label>
-                        <input type="range" class="form-range" min="50" max="100" step="1" asp-for="LogoWhiteTolerance"
-                               oninput="document.getElementById('white-tol-val').textContent=this.value" />
-                        <div class="form-text small">Niedriger = aggressiver, entfernt auch helle Grautöne.</div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small">Einfärben in (optional)</label>
-                        <div class="d-flex gap-2">
-                            <input type="color" asp-for="LogoRecolorHex" value="@(Model.LogoRecolorHex ?? "#000000")"
-                                   onchange="document.getElementById('recolor-hex').value=this.value" style="width:60px;" />
-                            <input type="text" id="recolor-hex" class="form-control form-control-sm"
-                                   asp-for="LogoRecolorHex" placeholder="leer = Originalfarben" />
-                        </div>
-                        <div class="form-text small">Macht das Logo einfarbig — z.B. komplett schwarz oder weiß.</div>
-                    </div>
-                    <div class="col-12 d-flex gap-2 mt-2 flex-wrap">
-                        <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Hochladen + Anwenden</button>
                         @if (Model.Current.LogoBytes is { Length: > 0 })
                         {
-                            <button type="submit" formaction="?handler=ReprocessLogo" class="btn btn-outline-primary"
-                                    title="Aktuelle Einstellungen auf gespeichertes Logo neu anwenden">
-                                <i class="bi bi-arrow-clockwise"></i> Neu prozessieren
-                            </button>
-                            <button type="submit" formaction="?handler=ClearLogo" class="btn btn-outline-danger"
-                                    onclick="return confirm('Logo entfernen?');">
-                                <i class="bi bi-trash"></i> Entfernen
-                            </button>
-                        }
-                    </div>
-
-                    @if (Model.Current.LogoBytes is { Length: > 0 })
-                    {
-                        <div class="col-12 mt-3">
-                            <div class="card border-light">
-                                <div class="card-body py-2">
-                                    <div class="small text-muted mb-2"><i class="bi bi-magic"></i> Schnell-Aktionen — wenden direkt auf das aktuelle Logo an:</div>
-                                    <div class="d-flex gap-2 flex-wrap">
-                                        <button type="submit" formaction="?handler=QuickBlackTransparent"
-                                                class="btn btn-sm btn-dark">
-                                            <i class="bi bi-circle-fill"></i> Schwarz + transparent
-                                        </button>
-                                        <button type="submit" formaction="?handler=QuickWhiteTransparent"
-                                                class="btn btn-sm btn-light border">
-                                            <i class="bi bi-circle"></i> Weiß + transparent
-                                        </button>
-                                    </div>
-                                </div>
+                            <div class="form-text small mb-2">
+                                <code>@(Model.Current.LogoContentType ?? "?")</code> ·
+                                @((Model.Current.LogoBytes.Length / 1024.0).ToString("N1")) KB
                             </div>
-                        </div>
-                    }
-                </form>
+                        }
+                        <form method="post" asp-page-handler="UploadLogo" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap">
+                            <input asp-for="Logo" type="file" class="form-control form-control-sm flex-grow-1"
+                                   accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+                            <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-upload"></i></button>
+                            @if (Model.Current.LogoBytes is { Length: > 0 })
+                            {
+                                <button type="submit" formaction="?handler=ClearLogo" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Light-Logo entfernen?');"><i class="bi bi-trash"></i></button>
+                            }
+                        </form>
+                        <div class="form-text small mt-2">PNG, JPG, SVG, WebP — max. 2 MB. Wird wie-hochgeladen angezeigt.</div>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <hr class="my-4" />
-
-        <h3 class="mb-3"><i class="bi bi-moon-stars me-2"></i>Logo für Dark Mode (optional)</h3>
-        <div class="row g-3 align-items-end">
-            <div class="col-md-4">
-                @if (Model.Current.LogoDarkBytes is { Length: > 0 })
-                {
-                    <div class="logo-preview-checker" data-theme="dark">
-                        <img src="/branding/logo/dark?v=@Model.Current.Version" alt="Dark Logo" style="max-height: 80px;" />
+            <!-- Dark Mode -->
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header bg-dark text-white d-flex align-items-center">
+                        <i class="bi bi-moon-stars me-2"></i><strong>Dark Mode</strong>
                     </div>
-                    <div class="form-text small">
-                        Format: <code>@(Model.Current.LogoDarkContentType ?? "unbekannt")</code> ·
-                        @((Model.Current.LogoDarkBytes.Length / 1024.0).ToString("N1")) KB
-                    </div>
-                }
-                else
-                {
-                    <div class="text-muted">Kein Dark-Mode-Logo gesetzt.<br />Das Light-Logo wird auch im Dark Mode verwendet.</div>
-                }
-            </div>
-            <div class="col-md-8">
-                <form method="post" asp-page-handler="UploadDarkLogo" enctype="multipart/form-data" class="row g-2">
-                    <div class="col-12">
-                        <input asp-for="LogoDark" type="file" class="form-control" accept="image/png,image/jpeg,image/webp" />
-                        <div class="form-text small">Lade hier eine helle Variante deines Logos hoch (z.B. weiße Schrift statt schwarz).</div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" role="switch" asp-for="LogoDarkRemoveWhite" id="logoDarkRmWhite" />
-                            <label class="form-check-label" for="logoDarkRmWhite">Hintergrund automatisch entfernen</label>
+                    <div class="card-body">
+                        <div class="logo-preview-checker mb-3" style="background-color: #222;">
+                            @if (Model.Current.LogoDarkBytes is { Length: > 0 })
+                            {
+                                <img src="/branding/logo/dark?v=@Model.Current.Version" alt="Dark Logo" style="max-height: 80px;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted small">Kein Logo — Fallback auf Light-Logo</span>
+                            }
                         </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small">Optional einfärben in</label>
-                        <input type="color" asp-for="LogoDarkRecolorHex" value="@(Model.LogoDarkRecolorHex ?? "#FFFFFF")" style="width:60px; height:32px;" />
-                    </div>
-                    <div class="col-12 d-flex gap-2 mt-2 flex-wrap">
-                        <button class="btn btn-primary" type="submit"><i class="bi bi-upload"></i> Dark-Logo hochladen</button>
                         @if (Model.Current.LogoDarkBytes is { Length: > 0 })
                         {
-                            <button type="submit" formaction="?handler=ClearDarkLogo" class="btn btn-outline-danger"
-                                    onclick="return confirm('Dark-Mode-Logo entfernen?');">
-                                <i class="bi bi-trash"></i> Entfernen
-                            </button>
+                            <div class="form-text small mb-2">
+                                <code>@(Model.Current.LogoDarkContentType ?? "?")</code> ·
+                                @((Model.Current.LogoDarkBytes.Length / 1024.0).ToString("N1")) KB
+                            </div>
                         }
+                        <form method="post" asp-page-handler="UploadDarkLogo" enctype="multipart/form-data" class="d-flex gap-2 flex-wrap">
+                            <input asp-for="LogoDark" type="file" class="form-control form-control-sm flex-grow-1"
+                                   accept="image/png,image/jpeg,image/svg+xml,image/webp" />
+                            <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-upload"></i></button>
+                            @if (Model.Current.LogoDarkBytes is { Length: > 0 })
+                            {
+                                <button type="submit" formaction="?handler=ClearDarkLogo" class="btn btn-sm btn-outline-danger"
+                                        onclick="return confirm('Dark-Logo entfernen?');"><i class="bi bi-trash"></i></button>
+                            }
+                        </form>
+                        <div class="form-text small mt-2">Helle Variante für dunkles Theme — wird wie-hochgeladen angezeigt.</div>
                     </div>
-                </form>
+                </div>
             </div>
+
         </div>
     </div>
 }

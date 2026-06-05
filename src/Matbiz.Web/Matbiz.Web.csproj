@@ -16,7 +16,6 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <PackageReference Include="PDFsharp" Version="6.2.4" />
     <PackageReference Include="QuestPDF" Version="2026.5.0" />
-    <PackageReference Include="SixLabors.ImageSharp" Version="2.1.10" />
     <PackageReference Include="System.Reflection" Version="4.3.0" />
     <PackageReference Include="ZUGFeRD-csharp" Version="18.0.0" />
   </ItemGroup>

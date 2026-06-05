@@ -480,14 +480,8 @@ main {
     background-color: #222;
 }
 
-.brand-logo.logo-invert-always { filter: invert(1) hue-rotate(180deg); }
-[data-theme="dark"]    .brand-logo.logo-invert-dark { filter: invert(1) hue-rotate(180deg); }
-[data-bs-theme="dark"] .brand-logo.logo-invert-dark { filter: invert(1) hue-rotate(180deg); }
-@media (prefers-color-scheme: dark) {
-    [data-theme="system"] .brand-logo.logo-invert-dark { filter: invert(1) hue-rotate(180deg); }
-}
-
-/* Light/Dark Logo-Switch — wenn zwei Logos hochgeladen sind */
+/* Light/Dark Logo-Switch — Dark wird im dunklen Theme angezeigt, sonst Light.
+   Wenn kein Dark-Logo gerendert wurde, bleibt Light auch im Dark Mode (Fallback). */
 .brand-logo-dark { display: none; }
 [data-theme="dark"]    .brand-logo-light { display: none; }
 [data-theme="dark"]    .brand-logo-dark  { display: block; }
