@@ -51,8 +51,12 @@ services:
       Matbiz__SeedAdmin__Email: admin@matbiz.home
       Matbiz__SeedAdmin__Password: Wechsel-Mich-Bitte-2026!
 
-      # Demo-Daten beim ersten Start anlegen? Für Produktion auf "false".
-      Matbiz__SeedSampleData: "false"
+      # Demo-Daten beim ersten Start anlegen?
+      # Setzt Kontakte, Firmen, Aufgaben, Artikel, Belege (Angebot/Auftrag/
+      # Rechnung), Lagerbestände, Wareneingang-Entwurf, Wiki-Seiten und
+      # Custom-Menu-Beispiele auf. Idempotent — läuft nicht doppelt.
+      # Für Produktion nach dem ersten Start auf "false" stellen.
+      Matbiz__SeedSampleData: "true"
 
     ports:
       # Linke Seite = externer Port (Host), rechte = interner Container-Port (8080 lassen)

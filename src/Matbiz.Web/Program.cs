@@ -134,6 +134,9 @@ using (var scope = app.Services.CreateScope())
 
     // Default-Lager sicherstellen
     await scope.ServiceProvider.GetRequiredService<Matbiz.Web.Modules.Warehouse.Services.WarehouseService>().EnsureDefaultAsync();
+
+    // Wiki + Custom-Menu + Lager-Bestände (idempotent, nur wenn SeedSampleData=true)
+    await ExtendedSampleSeeder.SeedAsync(scope.ServiceProvider, app.Configuration, app.Logger);
 }
 
 // --- Pipeline ----------------------------------------------------------------
